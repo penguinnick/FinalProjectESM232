@@ -5,6 +5,11 @@ date: "5/12/2020"
 output: html_document
 ---
 
+Code comes from Chapter 10 in Soetaert et al 2009:
+Soetaert, Herman, and Herman, P. M. J. A Practical Guide to Ecological Modelling Using R as a Simulation Platform. Dordrecht]: Springer, 2009. Web.
+
+Model is based on Clark and Mangel
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -35,8 +40,10 @@ feeding gains (gain), and reproduction gains (repr).
 
 ```{r pressure, echo=FALSE}
 npatch <- 3 # number of patches
-psurvive <- c(0.99,0.95,0.98) # probability of surviving
-pfood <- c(0.2 ,0.5 ,0 ) # probability of feeding
+# psurvive <- c(0.99,0.95,0.98) # probability of surviving
+psurvive <- c(0.99,0.85,0.98) # probability of surviving
+# pfood <- c(0.2 ,0.5 ,0 ) # probability of feeding
+pfood <- c(0.2 ,0.65 ,0 ) # probability of feeding
 cost <- c(1 ,1 ,1 ) # cost of a patch
 feedgain <- c(2 ,4 ,0 ) # gain of feeding
 repr <- c(0 ,0 ,4 ) # max reproduction
@@ -81,6 +88,7 @@ minima) of the vectors. Thus, in the statement xx <- pmin(x ,x max) every
 value of the vector x is compared with x max, and the vector xx will be equal to the
 vector x, except that all values of x which exceed x max will have been replaced
 by x max.
+
 As dynamic programming models run backwards, the ‘initial condition’ is the
 final value, here the fitness, at t max.
 For this model, Clark and Mangel (2000) assume that the final fitness increases
