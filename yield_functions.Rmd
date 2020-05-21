@@ -13,6 +13,39 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 ```
 
+
+```{r}
+source("./R/wheat_yield.R")
+
+example_yields=read_csv("example_yield.csv")
+
+wheat_input = example_yields %>% 
+  select(year,yield_wheat) %>% 
+  rename(mean_yield=yield_wheat)
+
+wheat_yield(yields = wheat_input)
+```
+
+```{r}
+source("./R/barley_yield.R")
+
+barley_input = example_yields %>% 
+  select(year,yield_barley) %>% 
+  rename(mean_yield=yield_barley)
+
+barley_yield(yields = barley_input)
+```
+
+
+
+
+
+
+
+
+
+
+
 ##Reading in the data used to create a simple model 
 ```{r}
 climate=read_csv("climate_change.csv")
@@ -31,5 +64,8 @@ summary(barley)
 #precip =      0.016502
 ```
 
-
+# http://www.fao.org/3/y4011e04.htm
+  #opitimal wheat temperature is 25 C
+  #1 tonne/ha is average yield in Egypt with rain fed wheat
+  # 1.42 tonne/ha is average barley yield 
 
