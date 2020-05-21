@@ -1,8 +1,10 @@
-#' @param m_T is the mean Temperature in main growing month (C) for each year of interest
-#' @param mm_P mm of rain in main growing month
-
-wheat_yield = function()
-# http://www.fao.org/3/y4011e04.htm
-  #opitimal wheat temperature is 25 C
-  #1 tonne/ha is average yield in Egypt with rain fed wheat
-  # 1.42 tonne/ha is average barley yield 
+#' @param  yields historic yield data frame provide at least 30 years of data
+#' as annual (year, mean_yield (tonnes/ha))
+wheat_yield = function(yields) {
+  wheat=yields
+  
+  mean_yield = mean(wheat$mean_yield)
+  sd_yield = sd(wheat$mean_yield)
+  
+  
+}
