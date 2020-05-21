@@ -1,0 +1,35 @@
+---
+title: "yield_functions"
+author: "Madeline Gorchels"
+date: "5/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+##Reading in the data used to create a simple model 
+```{r}
+climate=read_csv("climate_change.csv")
+```
+```{r}
+wheat=lm(yield_wheat~mean+precip.x,data=climate)
+summary(wheat) 
+#intercept = 1.1851971
+#mean_T = -0.0317005
+#precip = 0.0116212
+
+barley = lm(yield_barley~mean+precip.x, data=climate)
+summary(barley)
+#intercept =  1.682980 
+#mean_T =     -0.045015
+#precip =      0.016502
+```
+
+
+
