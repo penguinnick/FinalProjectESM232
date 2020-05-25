@@ -62,11 +62,11 @@ theta=8
 
 ```{r specify state vars and constraints}
 # # using Mace and Houston
-# wcrit <- 0 # critical wealth, destitution point
-# maxwealth <- 160 # in goat equivalents # maximal wealth
+ wcrit <- 0 # critical wealth, destitution point
+ maxwealth <- 160 # in goat equivalents # maximal wealth
 # hsr <- 80   #  critical wealth needed to survive
 # theta <- 8 # number of goats obtained for one camel
-# w_class <- wcrit:maxwealth # wealth classes
+ w_class <- wcrit:maxwealth # wealth classes
 # nwealth <- length(w_class) # number of wealth classes
 # t_max <- 50 # number of time steps
 # times <- 1:(t_max-1)
@@ -190,7 +190,7 @@ for (x in x_class[-1]) # for each class, except x-crit
   # pnondrought <- c(pgoodyr.crop, pgoodyr.stock)
   
  
-  }
+  #}
 
 
 #   
