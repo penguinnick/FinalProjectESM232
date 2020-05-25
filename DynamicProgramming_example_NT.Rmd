@@ -230,6 +230,7 @@ sdp <- function(times, parms, rates){
     }
   })
 }
+
 sdp(times = times, parms = parms, rates = rates)
       
       goats <- ode(y=x,time=times, dexppop, parms=c(0.012))
