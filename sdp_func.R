@@ -65,8 +65,8 @@ sdp <- function(theta, hsr, parms, rates){
           if(ncattle+ngoats>=hsr){
             d=0
           }
-          if(ncattle+ngoats<hsr){
-            d=hsr-(ncattle+ngoats)
+         # if(ncattle+ngoats<hsr){
+           else { d=hsr-(ncattle+ngoats)
           }
           stock.t <- c(0, 0, ncattle, ngoats)
           repr <- cropgains + stock.t
