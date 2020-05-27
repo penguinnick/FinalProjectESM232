@@ -86,7 +86,7 @@ p0 = c(48, 23, 19, 15, 13, 12, 9, 6, 3)
 
     for(t in rev(times)){
       
-      for (x in x_class[-1]){
+      for (x in x_class[-1]){  # maybe this can be run in sapply?
         # crops
         wheatgain=wheat_yield(yields = wheatY)
         barleygain=barley_yield(yields = barleyY)
@@ -97,7 +97,8 @@ p0 = c(48, 23, 19, 15, 13, 12, 9, 6, 3)
         Vc <- expectedcropgain + dscrop$deficit
         best.strategy$crops[t-1,x]<- which.max(Vc)
         c <- best.strategy$crops[t,x]
-        f[t-1,x] <- max(Vc)-hsr
+        # f[t,x-x_crit+1] <- max(Vc)-hsr
+        # f[t,w-wcrit+1] <- max(V) # optimal fitness
         s[t-1,x] <- dscrop$surplus[which.max(Vc)]
         
         # livestock
@@ -110,8 +111,8 @@ p0 = c(48, 23, 19, 15, 13, 12, 9, 6, 3)
         best.strategy$stock[t-1,x]<- which.max(Vs)
         m <- best.strategy$stock[t,x]
         p1 <- livestock[[m]]$popbyage[,2]
-        f[t-1,x] <- f[t-1,x] + Vs[m] + Vc[c]
-        f[t,x] <- ifelse(f[t-1,x]<sum(hsr,s[t-1,x]), 0, x+sum(p1)) 
+        f[t, x-x_crit+1] <- Vs[m] + Vc[c]
+        # f[t,x] <- ifelse(f[t-1,x]<sum(hsr,s[t-1,x]), 0, x+sum(p1)) 
         p0 = p1
       }
     }
