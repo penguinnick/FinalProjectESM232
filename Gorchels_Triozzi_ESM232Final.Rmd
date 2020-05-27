@@ -1,0 +1,98 @@
+---
+title: "Gorchels_Triozzi_ESM232_final"
+author: "Nick Triozzi"
+date: "5/26/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# load functions
+
+```
+
+## Agricultural component
+
+Poisson distribtuion to simulate variance in yields, submodel creates scalable output
+
+
+```{r crops }
+
+
+
+```
+
+## Some graph of crop submodel results
+
+```{r yielddist, echo=FALSE}
+
+# density 
+
+```
+
+
+## Livestock component
+
+We're only interested in herd growth during one time step, and input parameters, especially fertility and survivability might be modified depending on the goals of the farmer. Here, we've modified the function evolve_pop to accouunt for additional herd reductions from slaughter. Two offtake rates are considered: 50% and 75% use rates for exploiting natural deaths for caloric gain. These figures variably affect different age categories each with its own fertility rate. Offtake for slaughter may have down-the-line consequences for herd size. 
+
+```{r livestock, echo=FALSE}
+
+source("./R/evolve_pop_wofftake.R")
+
+nyears=50
+nyears=nyears
+# assign values for fertility for each of the age classes 
+# number of daughters expected at age x from females still alive at age x
+goatfert =  c(0,0.150,0.410,0.550,0.705, 0.695, 0.725, 0.515,0.515)
+fertility = goatfert
+
+# survivability - based on mortality rates female sheep (Redding Table IV-7)
+goatsurv <- c(0.55, 0.90, 0.90, 0.95, 0.95, 0.90, 0.75, 0.50, 0.00)
+survivability <- goatsurv
+
+# initial population parameters
+# p0 = c(33, 21, 17, 15, 13, 12, 11, 7, 4)
+# sheepini = p0
+# initialpop = sheepini
+p0 = c(48, 23, 19, 15, 13, 12, 9, 6, 3)
+goatini=p0
+initialpop = goatini
+
+# offtake rate per 100 adult does at 50% use rate of animals to die
+goatoff=list(goatoff50 = c(10.8, 1.1, 0.9, 0.3, 0.3, 0.6, 1.1, 1.5 , 1.5),  # at 50%
+     goatoff75 = c(16.2, 1.7, 1.4, 0.5, 0.4, 0.9, 1.6, 2.2 , 2.2)) # at 75% use rate
+
+offtake= lapply(goatoff, function(o){o/p0}) # create offtake rates as % of initial population
+
+# return mean offtake for each strategy
+lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = nyears, offtake=o); return(mean(tmp[]$offtot))})
+
+# return mean offtake for each strategy
+lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = nyears, offtake=o); return(sd(tmp[]$offtot))})
+
+tmp <- lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = nyears, offtake=o); return(tmp)})
+
+
+
+```
+
+
+
+```{r livestock, echo=FALSE}
+
+parms= list(x_crit=0, # critical mass to survive
+            x_max=160, # maximal mass
+            x_rep=4, # critical mass for reproduction
+            t_max=50, # number of time steps
+            npatch=2,
+            hsr=36) 
+
+
+
+plot(pressure)
+```
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
