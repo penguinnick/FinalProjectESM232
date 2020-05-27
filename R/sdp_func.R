@@ -96,20 +96,20 @@ p0 = c(48, 23, 19, 15, 13, 12, 9, 6, 3)
         expectedcropgain <- pr.A*(x-cropcost + cropgains + dscrop$deficit) + (1-pr.A)*(x-cropcost + cropgains + dscrop$deficit)
         Vc <- expectedcropgain + dscrop$deficit
         best.strategy$crops[t-1,x]<- which.max(Vc)
-        c <- best.strategy$crops[t,x]
+        c <- best.strategy$crops[t-1,x]
         # f[t,x-x_crit+1] <- max(Vc)-hsr
         # f[t,w-wcrit+1] <- max(V) # optimal fitness
         s[t-1,x] <- dscrop$surplus[which.max(Vc)]
         
         # livestock
         livestock <- lapply(offtake, function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = 3, offtake=o); return(tmp)})
-        stock.products <- c(livestock$goatoff50$offtot[2], livestock$goatoff75$offtot[2])
+        stock.products <- c(livestock$goatoff50$offtot[3], livestock$goatoff75$offtot[3])
         new.stock <- c(livestock$goatoff50$newstock[3], livestock$goatoff75$newstock[3])
         dsstock <- deficit.surplus(hsr = hsr, gains = stock.products, maxwealth = parms$x_max, x, t)
         expectedstockgain <- pr.B*(stock.products + new.stock + dsstock$deficit) + (1-pr.B)*(stock.products + new.stock + dsstock$deficit)
         Vs <- expectedstockgain + dsstock$deficit
         best.strategy$stock[t-1,x]<- which.max(Vs)
-        m <- best.strategy$stock[t,x]
+        m <- best.strategy$stock[t-1,x]
         p1 <- livestock[[m]]$popbyage[,2]
         f[t, x-x_crit+1] <- Vs[m] + Vc[c]
         # f[t,x] <- ifelse(f[t-1,x]<sum(hsr,s[t-1,x]), 0, x+sum(p1)) 
