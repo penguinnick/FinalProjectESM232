@@ -33,6 +33,8 @@ rates=list(wheatY=data.frame(year=seq(1:50), mean_yield=rpois(n=50, lambda = 30)
            # pgoodyr.crop <- c(0.25, 0.25) # barley wheat
            # pbadyr.crop <- c(0.75, 0.75)
            # hsr=36)
+
+
 x_class=parms$x_crit:parms$x_max
 nmass=length(x_class)
 times=1:(parms$t_max-1)
