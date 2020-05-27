@@ -18,7 +18,10 @@ Poisson distribtuion to simulate variance in yields, submodel creates scalable o
 
 
 ```{r crops }
+#-- function for simulating crop yield data
 
+#-- Store crop parms in list to use for later
+crop.parms=list(c(...))
 
 
 ```
@@ -27,7 +30,7 @@ Poisson distribtuion to simulate variance in yields, submodel creates scalable o
 
 ```{r yielddist, echo=FALSE}
 
-# density 
+# density plot?
 
 ```
 
@@ -79,7 +82,17 @@ tmp <- lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility, survivabili
 
 
 
-```{r livestock, echo=FALSE}
+```{r plot livestock, echo=FALSE}
+
+```
+
+## The Farmer's Choice Model
+
+explanation
+
+Here we set parameters.
+
+```{r set up for sdp, echo=FALSE}
 
 parms= list(x_crit=0, # critical mass to survive
             x_max=160, # maximal mass
@@ -88,11 +101,106 @@ parms= list(x_crit=0, # critical mass to survive
             npatch=2,
             hsr=36) 
 
+rates=list(wheatY=data.frame(year=seq(1:50), mean_yield=rpois(n=50, lambda = 30)),
+           # wheat_yield(wheatY) # generates wheat yield
+           barleyY=data.frame(year=seq(1:50), mean_yield=rpois(n=50, lambda = 45)),
+           # barley_yield(barleyY) # generates barley yield
+           npatch=4,
+           good.b=c(0, 0, 1.20, 1.80), # birthrates in good  year; cattle goats (current fitness)
+           good.d=c(0, 0, 0.95, 0.85), # death rates in bad year; cattle goats (curent fitness)
+           bad.b=c(0, 0, 1, 1.10),
+           bad.d=c(0, 0, 0.65, 0.75),
+           # pop.r.g <- c(0, 0, 1.14, 1.53) # population growth good year (expected gains)
+           # pop.r.b <- c(0.65, 0.825)
+           goodyear=c(0.25, 0.25, 0.8, 0.8)) #,
+           # repr=c(0,0,1,5)) #,
+           # pgoodyr.stock <- c(0.8, 0.8) # cows goats
+           # pbadyr.stock <- c(0.2, 0.2)
+           # pgoodyr.crop <- c(0.25, 0.25) # barley wheat
+           # pbadyr.crop <- c(0.75, 0.75)
+           # hsr=36)
+
+x_class=parms$x_crit:parms$x_max
+nmass=length(x_class)
+times=1:(parms$t_max-1)
+
+```
+
+## more parameters
+
+setting up data structures
+
+
+```{r set up for sdp, echo=FALSE}
+
+
+
+
+
+# initialize 
+f <- matrix(nrow=parms$t_max,ncol=nmass ,0) # optimal fitness
+s <- matrix(nrow=parms$t_max,ncol=nmass ,0) # surplus
+pr.A = 0.25
+pr.B = 0.8
+best.strategy= list(crops=matrix(nrow=parms$t_max-1,ncol=nmass-1 ,0) ,stock=matrix(nrow=parms$t_max-1,ncol=nmass-1 ,0))
+# bestpatch <- matrix(nrow=t_max-1,ncol=nmass-1,0) # best patch
+Vs <- vector(length=parms$npatch) # current fitness
+Vc <- vector(length=parms$npatch) # current fitness
+
+# bestpatch <- matrix(nrow=parms$t_max-1,ncol=nmass-1,0) # best patch
+# V <- vector(length=parms$npatch) # current fitness
+f[parms$t_max,] <- 36
+s[parms$t_max,] <- 20
+
+# fitness <- function(x,t)
+# {
+#   xx <- pmin(x ,parms$x_max)
+#   xx <- pmax(xx,parms$x_crit)
+#   # fitness <- f[t,xx-parms$x_crit+1]
+#   f[t,xx-parms$x_crit+1]
+# }
 
 
 plot(pressure)
 ```
 
+Big build up
 
+```{r deficit function, echo=FALSE}
+
+
+deficit.surplus <- function(hsr, gains, maxwealth, x, t){
+  # gains<- cropgains
+  # maxwealth=160
+  # hsr=36
+  xx <- pmin(gains, maxwealth)
+  d <- ifelse(xx-hsr>0, 0, xx-hsr)
+  # d.index <- which.max(d)
+  deficit <- d
+  s <- ifelse(d==0, xx-hsr, 0)
+  # s.index <- which.max(s)
+  surplus <- s
+  return(list(deficit=deficit, surplus=surplus))
+  # f[t-1,x+1] <- surplus+x+1
+}
+
+
+```
+
+
+```{r run the func}
+
+##-- sdpfunction.
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+
+
+
+
+
+
+
+
