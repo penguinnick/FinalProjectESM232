@@ -47,15 +47,16 @@ evolve_pop_wofftake = function(fertility, survivability, initialpop, nstep, offt
     # pop_structure[,i]=pop_structure[,i-1] - (pop_structure[,i-1]*offtake)
     pop_structure[,i] = (leslie_matrix %*% pop_structure[,i-1]) - (pop_structure[,i-1]*offtake)
     offtake_str[,i] = (pop_structure[,i-1]*offtake) #+ ((natural_deaths%*%pop_structure[,i-1])/2)
+    offtake_str[,i] = ifelse(offtake_str[,i]<0, 0, offtake_str[,i])
     # popchange[i]=pop_structure[,i-1] - pop_structure[,i]
     total_pop[i]=sum(pop_structure[,i-1])
-    total_off[i]=sum(offtake_str[,i])
+    total_off[i]=sum(offtake_str[,i-1])
     additions[i]=sum(total_pop[i]-total_pop[i-1])
      #-(offtake_matrix  %*% pop_structure[,i-1])
     # natural_deaths[,i] = 
     # offtake_str[,i]= offtake_matrix  %*% pop_structure[,i-1] 
     }
-  return(list(popbyage=pop_structure, poptot=total_pop, offtakes=offtake_str, offtot=total_off, newstock=additions))
+  return(list(popbyage=pop_structure, poptot=total_pop, offtakes=offtake_str[,-1], offtot=total_off, newstock=additions))
   # return(list(popbyage=pop_structure, poptot=total_pop,  culledpop=offtake_str))
 }
 

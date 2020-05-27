@@ -69,10 +69,10 @@ goatoff=list(goatoff50 = c(10.8, 1.1, 0.9, 0.3, 0.3, 0.6, 1.1, 1.5 , 1.5),  # at
 offtake= lapply(goatoff, function(o){o/p0}) # create offtake rates as % of initial population
 
 # return mean offtake for each strategy
-lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = nyears, offtake=o); return(mean(tmp[]$offtot))})
+lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = nyears, offtake=o); return(list(mean=mean(tmp[]$offtot)))})
 
 # return mean offtake for each strategy
-lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = nyears, offtake=o); return(sd(tmp[]$offtot))})
+lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = nyears, offtake=o); return(list(sd=sd(tmp[]$offtot)))})
 
 tmp <- lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = nyears, offtake=o); return(tmp)})
 
@@ -83,6 +83,26 @@ tmp <- lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility, survivabili
 
 
 ```{r plot livestock, echo=FALSE}
+# compare population trends for both strategies 
+goat50=cbind.data.frame(year=seq(1:nyears), t(tmp$goatoff50$popbyage))
+goat75=cbind.data.frame(year=seq(1:nyears), t(tmp$goatoff75$popbyage))
+colnames(goat50)<- c("year", "0-1", "1-2", "2-3", "3-4", "4-5", "5-6", "6-7", "7-8", "8-9")
+colnames(goat75)<- c("year", "0-1", "1-2", "2-3", "3-4", "4-5", "5-6", "6-7", "7-8", "8-9")
+goat50_agesl= goat50 %>% gather(key="agecat", value="pop",-year)
+goat75_agesl= goat75 %>% gather(key="agecat", value="pop",-year)
+ggplot(goat50_agesl, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population", fill="Age Group")
+ggplot(goat75_agesl, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population", fill="Age Group")
+
+# compare offtake trends for both strategies 
+goat50off=cbind.data.frame(year=seq(2:nyears), t(tmp$goatoff50$offtakes))
+goat75off=cbind.data.frame(year=seq(2:nyears), t(tmp$goatoff75$offtakes))
+colnames(goat50off)<- c("year", "0-1", "1-2", "2-3", "3-4", "4-5", "5-6", "6-7", "7-8", "8-9")
+colnames(goat75off)<- c("year", "0-1", "1-2", "2-3", "3-4", "4-5", "5-6", "6-7", "7-8", "8-9")
+goat50_agesl_off= goat50off %>% gather(key="agecat", value="slaughtered",-year)
+goat75_agesl_off= goat75off %>% gather(key="agecat", value="slaughtered",-year)
+ggplot(goat50_agesl_off, aes(year, pop, fill=agecat))+geom_col()+labs(y="Animals available for slaughter", fill="Age Group")
+ggplot(goat75_agesl_off, aes(year, pop, fill=agecat))+geom_col()+labs(y="Animals available for slaughter", fill="Age Group")
+
 
 ```
 
