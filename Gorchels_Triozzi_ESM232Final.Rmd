@@ -16,8 +16,7 @@ library(tidyverse)
 
 Agricultural yields have great variation in the same crop by year, location, and farming strategies This makes greating a general yield function for a specific crop challenging. To address this, we have followed a similar approach to Gulland et al. 1996 by making our agricultural modeling component adaptable. This model uses an input dataframe with at least 30 years of yield data. This can either be specific data for the farm studied or averages in the area of interest. Like Gulland et al. 1996, our function uses a normal distribution to account for the variation and gives a simulated yield for each time step based on the presented data. 
 
-
-
+#Example wheat data
 ```{r crops }
 source("./R/wheat_yield.R")
 
@@ -37,17 +36,13 @@ ggplot(wheat_input)+
   scale_y_continuous(expand = c(0,0))
 ```
 
-## Some graph of crop submodel results
-
-```{r yielddist, echo=FALSE}
-
-# density plot?
+# Wheat Results 
+```{r}
 
 years = seq(from=1, to=100, by=1)
 yield_res= sapply(years, wheat_yield, yields = wheat_input)
 # keep track of what times we ran
 yield_den = data.frame(yield=yield_res, years=years)
-
 
 ggplot(yield_den)+
   geom_histogram(aes(x=yield), fill="burlywood3")+
@@ -56,6 +51,33 @@ ggplot(yield_den)+
   xlab("Wheat Yield (tonnes/ha)")+
   scale_y_continuous(expand = c(0,0))
 
+```
+
+
+#Barley Results 
+
+```{r}
+source("./R/barley_yield.R")
+
+example_yields=read_csv("example_yield.csv")
+
+barley_input = example_yields %>% 
+  select(year,yield_barley) %>% 
+  rename(mean_yield=yield_barley)
+
+barley_yield(yields = barley_input)
+
+
+yield_res_b= sapply(years, barley_yield, yields = barley_input)
+# keep track of what times we ran
+yield_den_b = data.frame(yield=yield_res_b, years=years)
+
+ggplot(yield_den_b)+
+  geom_histogram(aes(x=yield), fill="burlywood4")+
+  theme_classic()+
+  ylab("Count")+
+  xlab("Barley Yield (tonnes/ha)")+
+  scale_y_continuous(expand = c(0,0))
 
 
 ```
