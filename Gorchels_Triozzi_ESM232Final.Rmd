@@ -148,7 +148,7 @@ ggplot(goat75_agesl, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population"
 #-- compare offtake trends for both strategies 
 goat50off=cbind.data.frame(year=seq(2:nyears), t(tmp$goatoff50$offtakes))
 goat75off=cbind.data.frame(year=seq(2:nyears), t(tmp$goatoff75$offtakes))
-colnames(goat50off)<- agecats
+colnames(goat50off)<- agecats 
 colnames(goat75off)<- agecats
 goat50_agesl_off= goat50off %>% gather(key="agecat", value="slaughtered",-year)
 goat75_agesl_off= goat75off %>% gather(key="agecat", value="slaughtered",-year)
