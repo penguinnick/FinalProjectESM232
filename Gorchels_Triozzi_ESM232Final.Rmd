@@ -53,8 +53,10 @@ ggplot(yield_den)+
   geom_histogram(aes(x=yield), fill="burlywood3")+
   theme_classic()+
   ylab("Count")+
-  xlab("Yield (tonnes/ha)")+
+  xlab("Wheat Yield (tonnes/ha)")+
   scale_y_continuous(expand = c(0,0))
+
+
 
 ```
 
