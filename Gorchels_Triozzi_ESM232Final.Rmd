@@ -14,7 +14,8 @@ library(tidyverse)
 
 ## Agricultural component
 
-Poisson distribtuion to simulate variance in yields, submodel creates scalable output
+Agricultural yields have great variation in the same crop by year, location, and farming strategies This makes greating a general yield function for a specific crop challenging. To address this, we have followed a similar approach to Gulland et al. 1996 by making our agricultural modeling component adaptable. This model uses an input dataframe with at least 30 years of yield data. This can either be specific data for the farm studied or averages in the area of interest. Like Gulland et al. 1996, our function uses a normal distribution to account for the variation 
+
 
 
 ```{r crops }
@@ -218,7 +219,7 @@ deficit.surplus <- function(hsr, gains, maxwealth, x, t){
 
 ##-- sdpfunction.
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+#Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 
 
@@ -228,5 +229,10 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 
 
 
+```
+
+
+##References 
+Milner-Gulland, E.J., Mace, R., Scoones, I.1996."A Model of Household Deciscions in Dryland Agropastoral Systems".Agricultral Systems. 51:4, 407-430.
 
 
