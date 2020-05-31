@@ -29,7 +29,7 @@ sdp_farm <- function(f,s,parms, crop.parms, stock.parms, x_class, times, max_sto
         # crops
         wheatgain=wheat_yield(yields = wheatY)
         barleygain=barley_yield(yields = barleyY)
-        cropgains <- c(wheatgain, barleygain) # variable crop gain 
+        cropgains <- c(as.integer(wheatgain), as.integer(barleygain)) # variable crop gain 
         cropcost <- c(cropgains/10) # crop cost is proportional to yield
         p.crops <- c(ppois(wheatgain, lambda = wheatgain), ppois(barleygain, lambda = barleygain))
         expectedcropgain <- p.crops*(wealth(x-cropcost+cropgains,t+1) + ((1-p.crops)*(wealth(x-cropcost+cropgains,t+1))))
@@ -38,9 +38,13 @@ sdp_farm <- function(f,s,parms, crop.parms, stock.parms, x_class, times, max_sto
         # livestock
         livestock <- lapply(offtake, function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = 3, offtake=o); return(tmp)})
         G.stock.products <- as.vector(unlist(lapply(offtake, function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = 3, offtake=o); return(sum(tmp$offtakes))})))
+        G.stock.products <- as.integer(G.stock.products)
         G.new.stock <- as.vector(unlist(lapply(offtake, function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = 3, offtake=o); return(tmp$newstock[3])})))
+        G.new.stock <- as.integer(G.new.stock)
         B.stock.products <- as.vector(unlist(lapply(offtake, function(o){tmp=evolve_pop_wofftake(fertility, (1-survivability), initialpop = p0, nstep = 3, offtake=o); return(sum(tmp$offtakes))})))
+        B.stock.products <- as.integer(B.stock.products)
         B.new.stock <- as.vector(unlist(lapply(offtake, function(o){tmp=evolve_pop_wofftake(fertility, (1-survivability), initialpop = p0, nstep = 3, offtake=o); return(tmp$newstock[3])})))
+        B.new.stock <- as.integer(B.new.stock)
         newp <- as.vector(lapply(offtake, function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = 3, offtake=o); return(tmp$popbyage[,2])}))
         oldp <- as.vector(lapply(offtake, function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = 3, offtake=o); return(tmp$popbyage[,1])}))
         current.herd <- as.vector(unlist(lapply(oldp, function(n){sum(n)})))

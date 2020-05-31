@@ -146,9 +146,13 @@ stock.parms= list(offtake=offtake, fertility=fertility, survivability=survivabil
 crop.parms=list(wheatY=wheat, barleyY=barley, wl=67, bl=74, ncrops=2)
 
 # initialize outputs
-times=seq(1:parms$t_max)
+times=seq(1:parms$t_max-1)
+t_max=parms$t_max
+max_store=parms$max_store
 nclass=length(x_class)
 f <- matrix(nrow=parms$t_max,ncol=nclass ,0) # optimal fitness
+f[t_max,] <- 36
+s[t_max,] <- max_store
 s <- matrix(nrow=parms$t_max,ncol=nclass ,0) # surplus
 best.strategy <- matrix(nrow=parms$t_max-1,ncol=nclass-1,0) # best patch
     
@@ -169,42 +173,11 @@ setting up data structures
 
 
 
-
-
-
-# initialize matrices to store optimal crop and livestock strategies
-best.strategy= list(crops=matrix(nrow=parms$t_max-1,ncol=nmass-1 ,0) ,
-                    stock=matrix(nrow=parms$t_max-1,ncol=nmass-1 ,0))
-
-# initialize vectors for storing current fitness 
-Vs <- vector(length=parms$npatch) # current fitness
-Vc <- vector(length=parms$npatch) # current fitness
-
-f[parms$t_max,] <- 36
-s[parms$t_max,] <- 20
-
-
 ```
 
 Big build up
 
 ```{r deficit function, echo=FALSE}
-
-
-deficit.surplus <- function(hsr, gains, maxwealth, x, t){
-  # gains<- cropgains
-  # maxwealth=160
-  # hsr=36
-  xx <- pmin(gains, maxwealth)
-  d <- ifelse(xx-hsr>0, 0, xx-hsr)
-  # d.index <- which.max(d)
-  deficit <- d
-  s <- ifelse(d==0, xx-hsr, 0)
-  # s.index <- which.max(s)
-  surplus <- s
-  return(list(deficit=deficit, surplus=surplus))
-  # f[t-1,x+1] <- surplus+x+1
-}
 
 
 ```
