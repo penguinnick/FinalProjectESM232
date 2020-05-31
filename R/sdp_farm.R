@@ -30,7 +30,7 @@ sdp_farm <- function(f,s,parms, crop.parms, stock.parms, x_class, times, max_sto
         wheatgain=wheat_yield(yields = wheatY)
         barleygain=barley_yield(yields = barleyY)
         cropgains <- c(as.integer(wheatgain), as.integer(barleygain)) # variable crop gain 
-        cropcost <- c(cropgains/10) # crop cost is proportional to yield
+      cropcost <- c(cropgains/10) # crop cost is proportional to yield
         p.crops <- c(ppois(wheatgain, lambda = wheatgain), ppois(barleygain, lambda = barleygain))
         expectedcropgain <- p.crops*(wealth(x-cropcost+cropgains,t+1) + ((1-p.crops)*(wealth(x-cropcost+cropgains,t+1))))
         
@@ -58,7 +58,7 @@ sdp_farm <- function(f,s,parms, crop.parms, stock.parms, x_class, times, max_sto
         # f[t,x-x_crit+1] <- max(Vs) # optimal fitness
         f[t,x-x_crit+1] <- max(V) # optimal fitness
         # best strategy at previous timestep
-        best <- which.max(Vs)
+        best <- which.max(V)
         beststrategy[t-1,x] <- best
         # add to surplus
         s[t,x] <- ifelse(Vs[best]-hsr>0,Vs[best]-hsr,0)
@@ -70,4 +70,3 @@ sdp_farm <- function(f,s,parms, crop.parms, stock.parms, x_class, times, max_sto
   })
   return(list(FarmWealth=f, Surplus=s, OptimalStrategy=best.strategy))
 } 
-
