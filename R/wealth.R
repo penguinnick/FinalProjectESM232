@@ -6,7 +6,7 @@
 
 
 
-wealth <- function(x,t, parms=parms)
+wealth <- function(x,t, x_max=160,x_crit=36)
 {
   xx <- pmin(x ,x_max)
   xx <- pmax(xx,x_crit)
