@@ -152,7 +152,7 @@ max_store=parms$max_store
 nclass=length(x_class)
 f <- matrix(nrow=parms$t_max,ncol=nclass ,0) # optimal fitness
 f[t_max,] <- 36
-s[t_max,] <- max_store
+f[t_max,] <- max_store
 s <- matrix(nrow=parms$t_max,ncol=nclass ,0) # surplus
 best.strategy <- matrix(nrow=parms$t_max-1,ncol=nclass-1,0) # best patch
     
