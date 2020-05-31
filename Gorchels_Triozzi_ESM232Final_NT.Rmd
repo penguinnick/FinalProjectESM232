@@ -167,11 +167,6 @@ setting up data structures
 ```{r set up for sdp, echo=FALSE}
 
 
-
-
-
-
-
 # initialize matrices to store optimal crop and livestock strategies
 best.strategy= list(crops=matrix(nrow=parms$t_max-1,ncol=nmass-1 ,0) ,
                     stock=matrix(nrow=parms$t_max-1,ncol=nmass-1 ,0))
