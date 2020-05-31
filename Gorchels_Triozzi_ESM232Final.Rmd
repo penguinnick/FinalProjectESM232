@@ -168,7 +168,7 @@ goat50_agesl_off= goat50off %>% gather(key="agecat", value="slaughtered",-year)
 goat75_agesl_off= goat75off %>% gather(key="agecat", value="slaughtered",-year)
 
 # plots
-<<<<<<< HEAD
+
 ### Facet wrap woul be nice here
 ggplot(goat50_agesl_off, aes(year, slaughtered, fill=agecat))+geom_col()+labs(y="Animals available for slaughter", fill="Age Group")
 ggplot(goat75_agesl_off, aes(year, slaughtered, fill=agecat))+geom_col()+labs(y="Animals available for slaughter", fill="Age Group")
