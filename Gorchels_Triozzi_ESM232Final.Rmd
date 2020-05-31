@@ -142,8 +142,13 @@ goat50_agesl= goat50 %>% gather(key="agecat", value="pop",-year)
 goat75_agesl= goat75 %>% gather(key="agecat", value="pop",-year)
 
 # plots
-ggplot(goat50_agesl, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population", fill="Age Group")
-ggplot(goat75_agesl, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population", fill="Age Group")
+ggplot(goat50_agesl, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population", fill="Age Group")+
+  theme_classic()+
+  scale_y_continuous(expand = c(0,0))
+
+ggplot(goat75_agesl, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population", fill="Age Group")+
+  theme_classic()+
+  scale_y_continuous(expand = c(0,0))
 
 #-- compare offtake trends for both strategies 
 goat50off=cbind.data.frame(year=seq(2:nyears), t(tmp$goatoff50$offtakes))
@@ -156,10 +161,14 @@ goat75_agesl_off= goat75off %>% gather(key="agecat", value="slaughtered",-year)
 # plots
 ggplot(goat50_agesl_off, aes(year, pop, fill=agecat))+
   geom_col()+
-  labs(y="Animals available for slaughter", fill="Age Group")
+  labs(y="Animals available for slaughter", fill="Age Group")+
+  theme_classic()+
+  scale_y_continuous(expand = c(0,0))
 
 ggplot(goat75_agesl_off, aes(year, pop, fill=agecat))+
-  geom_col()+labs(y="Animals available for slaughter", fill="Age Group")
+  geom_col()+labs(y="Animals available for slaughter", fill="Age Group")+
+  theme_classic()+
+  scale_y_continuous(expand = c(0,0))
 
 
 ```
