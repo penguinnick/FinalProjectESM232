@@ -171,6 +171,19 @@ setting up data structures
 ```{r set up for sdp, echo=FALSE}
 
 
+<<<<<<< HEAD
+=======
+# initialize matrices to store optimal crop and livestock strategies
+best.strategy= list(crops=matrix(nrow=parms$t_max-1,ncol=nmass-1 ,0) ,
+                    stock=matrix(nrow=parms$t_max-1,ncol=nmass-1 ,0))
+
+# initialize vectors for storing current fitness 
+Vs <- vector(length=parms$npatch) # current fitness
+Vc <- vector(length=parms$npatch) # current fitness
+
+f[parms$t_max,] <- 36
+s[parms$t_max,] <- 20
+>>>>>>> b0069a3ababbd05d1ddb7c58d77ff68402c88721
 
 
 ```
