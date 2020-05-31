@@ -32,7 +32,7 @@ sdp_farm <- function(f,s,parms, crop.parms, stock.parms, x_class, times, max_sto
         cropgains <- c(wheatgain, barleygain) # variable crop gain 
         cropcost <- c(cropgains/10) # crop cost is proportional to yield
         p.crops <- c(ppois(wheatgain, lambda = wheatgain), ppois(barleygain, lambda = barleygain))
-        expectedcropgain <- p.crops*(wealth(x-cropcost+cropgains,t+1) + (1-p.crops)*(wealth(x-cropcost+cropgains,t+1)))
+        expectedcropgain <- p.crops*(wealth(x-cropcost+cropgains,t+1) + ((1-p.crops)*(wealth(x-cropcost+cropgains,t+1))))
         
         
         # livestock
@@ -49,8 +49,9 @@ sdp_farm <- function(f,s,parms, crop.parms, stock.parms, x_class, times, max_sto
         # compare all gains
         gains <- c(expectedcropgain[1]+expectedstockgain[1], expectedcropgain[1]+expectedstockgain[2], expectedcropgain[2]+expectedstockgain[1], expectedcropgain[2]+expectedstockgain[2])
         V <- gains-hsr
-        Vs <- ifelse(V<0, V+(s[t-1,x]*0.95), V)
-        Vs[Vs<0] <- 0 # destitute
+        # Vs <- ifelse(V<0, V+(s[t-1,x]*0.95), V)
+        # Vs[Vs<0] <- 0 # destitute
+        # f[t,x-x_crit+1] <- max(Vs) # optimal fitness
         f[t,x-x_crit+1] <- max(V) # optimal fitness
         # best strategy at previous timestep
         best <- which.max(Vs)
