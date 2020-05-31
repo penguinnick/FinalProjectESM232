@@ -23,8 +23,8 @@ source("./R/wheat_yield.R")
 source("./R/barley_yield.R")
 #-- function for simulating crop yield data
 
-wheat<-data.frame(year=seq(1,50), mean_yield=rpois(50,lambda = 67))
-barley<-data.frame(year=seq(1,50), mean_yield=rpois(50,lambda = 74))
+wheatY<-data.frame(year=seq(1,50), mean_yield=rpois(50,lambda = 67))
+barleyY<-data.frame(year=seq(1,50), mean_yield=rpois(50,lambda = 74))
 
 
 ```
