@@ -71,10 +71,12 @@ goatoff=list(goatoff50 = c(10.8, 1.1, 0.9, 0.3, 0.3, 0.6, 1.1, 1.5 , 1.5),  # at
 
 offtake= lapply(goatoff, function(o){o/p0}) # create offtake rates as % of initial population
 
+livestock <- evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = nyears, offtake=offtake[[1]])
+
 # return mean offtake for each strategy
 lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = nyears, offtake=o); return(list(mean=mean(tmp[]$offtot)))})
 
-# return mean offtake for each strategy
+# return sd offtake for each strategy
 lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = nyears, offtake=o); return(list(sd=sd(tmp[]$offtot)))})
 
 tmp <- lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = nyears, offtake=o); return(tmp)})
@@ -133,17 +135,17 @@ Here we create lists containing the parameters for the sdp function. There are t
 ```{r set up for sdp, echo=FALSE}
 nyears=50
 parms= list(x_crit=0, # critical mass to survive
-            x_max=50, # maximal mass
+            x_max=160, # maximal mass
             t_max=50, # number of time steps
-            hsr=36,
-            maxwealth=160,
-            max_store=20) 
+            # hsr=36,
+            maxwealth=160)#,
+            # max_store=20) 
 
 x_class=parms$x_crit:parms$x_max
 
 #-- stock and crop parms from above
 stock.parms= list(offtake=offtake, fertility=fertility, survivability=survivability, nstocks=2)
-crop.parms=list(wheatY=wheat, barleyY=barley, wl=67, bl=74, ncrops=2)
+crop.parms=list(wheatY=wheatY, barleyY=barleyY, wl=67, bl=74, ncrops=2)
 
 # initialize outputs
 times=seq(1:parms$t_max-1)
@@ -155,28 +157,84 @@ f[t_max,] <- 36
 f[t_max,] <- max_store
 s <- matrix(nrow=parms$t_max,ncol=nclass ,0) # surplus
 best.strategy <- matrix(nrow=parms$t_max-1,ncol=nclass-1,0) # best patch
+# best.strategy <- matrix(nrow=parms$t_max,ncol=nclass ,0) # surplus
     
 # run function    
-sdp_farm(f,s, times = times, parms = parms, crop.parms = crop.parms, stock.parms = stock.parms, x_class = x_class)
+sdp_out <- sdp_farm(f,s, times = times, parms = parms, crop.parms = crop.parms, stock.parms = stock.parms, x_class = x_class)
 
 
+
+```
+
+```{r results}
+# livestock use rates for one wealth class over 50 years
+goatuse <- cbind.data.frame(year=seq(1:nyears), t(sdp_out$goatpop))
+agecats <- c("year", "0-1", "1-2", "2-3", "3-4", "4-5", "5-6", "6-7", "7-8", "8-9")
+colnames(goatuse)<- agecats
+ann.goatuse= goatuse %>% gather(key="agecat", value="pop",-year)
+ggplot(ann.goatuse, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population", fill="Age Group")
+
+
+# best strategy
+par(mfrow=c(1,1))
+image(x=times,y=x_class[-1],z=sdp_out$OptimalStrategy,ylab="weight",xlab="time",zlim=c(0,4),main="optimal patch",col=c("black","darkgrey","lightgrey","white", "blue"))+legend("topleft",fill=c("black","darkgrey","lightgrey","white", "blue"),legend=c("de ad","wheat&50%","wheat&75%","barley&50%", "barley$75%"))+contour(x=1:t_max,y=x_class,z=sdp_out$FarmWealth,add=TRUE)+legend("topright",legend="fitness",lty=1)
 
 ```
 
 ## Sensitivity Analysis of Livestock sub-model
 
 ``` {r sensitivity}
-np=100
-
-r = rnorm(mean=0.01, sd=0.001, n=np)
-g = rnorm(mean=2, sd=.5, n=np)
-X1 = cbind.data.frame(r=r, g=g)
+library(sensitivity)
+np=20
+prS=c(rnorm(mean=0.65, sd=0.15, n=np))#,rnorm(mean=0.01, sd=0.001, n=np),rnorm(mean=0.01, sd=0.001, n=np))
+max_surpl=c(rnorm(mean=15, sd=3.5, n=np))
+HSR = rnorm(mean=36, sd=12, n=np)
+X1 = cbind.data.frame(prS=prS, max_surpl=max_surpl, HSR=HSR)
 # repeat to get our second set of samples
-r = rnorm(mean=0.01, sd=0.001, n=np)
-g = rnorm(mean=2, sd=.5, n=np)
-X2 = cbind.data.frame(r=r, g=g)
+prS=c(rnorm(mean=0.65, sd=0.15, n=np))#,rnorm(mean=0.01, sd=0.001, n=np),rnorm(mean=0.01, sd=0.001, n=np))
+max_surpl=c(rnorm(mean=15, sd=3.5, n=np))
+HSR = rnorm(mean=36, sd=12, n=np)
+X2 = cbind.data.frame(prS=prS, max_surpl=max_surpl, HSR=HSR)
 # create our sobel object and get sets ofparameters for running the model
-sens_P = sobol2007(model = NULL,X1, X2, nboot = 300)
+sens_P = sobol2007(model = NULL,X1, X2, nboot = 100)
+
+sdp_farm(f,s, times = times, parms = parms, crop.parms = crop.parms, stock.parms = stock.parms, x_class = x_class)
+
+res = mapply(FUN=sdp_farm, PrS=sens_P$X$prS, max_store=sens_P$X$max_surpl, hsr=sens_P$X$HSR, MoreArgs=list(f=f,s=s, times = times, parms = parms, crop.parms = crop.parms, stock.parms = stock.parms, x_class = x_class))
+
+
+sens_sdp = sensitivity::tell(sens_P,res, res.names="mace")
+
+
+
+# first-order indices (main effect without co-variance)
+sens_sdp$S
+
+# total sensitivity index 
+sens_sdp$T
+
+print(sens_sdp)
+plot(sens_sdp)
+
+# compare with LHS and PRCC
+sens_sdp$prcc
+
+sob.size.ecdf <- ecdf(sens_P_maxpop$y)
+plot(sob.size.ecdf, col="red", lwd=2, xlab="Max forest size (kg/C)", do.points=TRUE)
+
+
+sob.year.ecdf <- ecdf(sens_P_maxyear$y)
+plot(sob.year.ecdf, col="red", lwd=2, xlab="Year carrying capacity reached (K=250 kg/C)", do.points=TRUE)
+
+
+
+# make a data frame for plotting
+both = cbind.data.frame(sens_Catm_sobel$X, gs=sens_Catm_sobel$y)
+
+# look at response of conductance to the two most important variables
+ggplot(both, aes(v,gs, col=height))+geom_point()+labs(y="Conductance (mm/s)", x="Windspeed")
+
+```
 
 
 # gets results for 300 years (evaluating every year)
