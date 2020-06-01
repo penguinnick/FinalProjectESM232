@@ -70,3 +70,4 @@ sdp_farm <- function(f,s,parms, crop.parms, stock.parms, x_class, times, max_sto
   })
   return(list(FarmWealth=f, Surplus=s, OptimalStrategy=best.strategy))
 } 
+
