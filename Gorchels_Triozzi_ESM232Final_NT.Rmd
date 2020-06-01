@@ -133,7 +133,7 @@ Here we create lists containing the parameters for the sdp function. There are t
 ```{r set up for sdp, echo=FALSE}
 nyears=50
 parms= list(x_crit=0, # critical mass to survive
-            x_max=160, # maximal mass
+            x_max=50, # maximal mass
             t_max=50, # number of time steps
             hsr=36,
             maxwealth=160,
@@ -163,8 +163,30 @@ sdp_farm(f,s, times = times, parms = parms, crop.parms = crop.parms, stock.parms
 
 ```
 
-## more parameters
+## Sensitivity Analysis of Livestock sub-model
 
+``` {r sensitivity}
+np=100
+
+r = rnorm(mean=0.01, sd=0.001, n=np)
+g = rnorm(mean=2, sd=.5, n=np)
+X1 = cbind.data.frame(r=r, g=g)
+# repeat to get our second set of samples
+r = rnorm(mean=0.01, sd=0.001, n=np)
+g = rnorm(mean=2, sd=.5, n=np)
+X2 = cbind.data.frame(r=r, g=g)
+# create our sobel object and get sets ofparameters for running the model
+sens_P = sobol2007(model = NULL,X1, X2, nboot = 300)
+
+
+# gets results for 300 years (evaluating every year)
+parmslist = list( cct=cct, K=K, temp=temp, r=sens_P$X$r[1], g=sens_P$X$g[1])
+# parms = list(r=sens_P$X$r[1], g=sens_P$X$g[1], cct=cct, K=K, temp=temp)
+result = ode(y=yini, times=poptime, func=forestgrowth, parms=parmslist)
+result.df = data.frame(time=result[,1], size=result[,2] )
+ggplot(result.df, aes(x=time,y=size))+geom_point()
+
+```
 setting up data structures
 
 
