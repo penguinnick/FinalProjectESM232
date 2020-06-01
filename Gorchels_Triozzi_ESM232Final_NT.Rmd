@@ -137,9 +137,7 @@ nyears=50
 parms= list(x_crit=0, # critical mass to survive
             x_max=160, # maximal mass
             t_max=50, # number of time steps
-            # hsr=36,
-            maxwealth=160)#,
-            # max_store=20) 
+            maxwealth=160)
 
 x_class=parms$x_crit:parms$x_max
 
@@ -150,23 +148,20 @@ crop.parms=list(wheatY=wheatY, barleyY=barleyY, wl=67, bl=74, ncrops=2)
 # initialize outputs
 times=seq(1:parms$t_max-1)
 t_max=parms$t_max
-max_store=parms$max_store
-nclass=length(x_class)
-f <- matrix(nrow=parms$t_max,ncol=nclass ,0) # optimal fitness
-f[t_max,] <- 36
-f[t_max,] <- max_store
-s <- matrix(nrow=parms$t_max,ncol=nclass ,0) # surplus
-best.strategy <- matrix(nrow=parms$t_max-1,ncol=nclass-1,0) # best patch
+
+
+
+
 # best.strategy <- matrix(nrow=parms$t_max,ncol=nclass ,0) # surplus
     
 # run function    
-sdp_out <- sdp_farm(f,s, times = times, parms = parms, crop.parms = crop.parms, stock.parms = stock.parms, x_class = x_class)
+sdp_out <- sdp_farm(parms = parms, crop.parms = crop.parms, stock.parms = stock.parms)
 
-
+# sdp_out<-sdp_farm(parms = parms, crop.parms = crop.parms, stock.parms = stock.parms, nclass = 160, PrS = 0.73)
 
 ```
 
-```{r results}
+```{r results - livestock}
 # livestock use rates for one wealth class over 50 years
 goatuse <- cbind.data.frame(year=seq(1:nyears), t(sdp_out$goatpop))
 agecats <- c("year", "0-1", "1-2", "2-3", "3-4", "4-5", "5-6", "6-7", "7-8", "8-9")
@@ -174,10 +169,39 @@ colnames(goatuse)<- agecats
 ann.goatuse= goatuse %>% gather(key="agecat", value="pop",-year)
 ggplot(ann.goatuse, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population", fill="Age Group")
 
+```
 
+```{r results - wealth}
 # best strategy
 par(mfrow=c(1,1))
-image(x=times,y=x_class[-1],z=sdp_out$OptimalStrategy,ylab="weight",xlab="time",zlim=c(0,4),main="optimal patch",col=c("black","darkgrey","lightgrey","white", "blue"))+legend("topleft",fill=c("black","darkgrey","lightgrey","white", "blue"),legend=c("de ad","wheat&50%","wheat&75%","barley&50%", "barley$75%"))+contour(x=1:t_max,y=x_class,z=sdp_out$FarmWealth,add=TRUE)+legend("topright",legend="fitness",lty=1)
+image(x=times,y=x_class[-1],z=sdp_out$OptimalStrategy,ylab="wealth",xlab="time",zlim=c(0,4),main="optimal strategy",col=c("black","darkgrey","lightgrey","white", "blue"))+legend("topleft",fill=c("black","darkgrey","lightgrey","white", "blue"),legend=c("destitute","wheat&50%","wheat&75%","barley&50%", "barley&75%"))+contour(x=1:t_max,y=x_class,z=sdp_out$FarmWealth,add=TRUE)+legend("topright",legend="fitness",lty=1)
+
+
+ggplot()
+
+library(ggplot2)
+
+# Dummy data
+x <- LETTERS[1:20]
+y <- paste0("var", seq(1,20))
+data <- expand.grid(X=x, Y=y)
+data$Z <- runif(400, 0, 5)
+
+mine.long <- gather(data = mine.data, key = Class, value = Abundance)
+w <- cbind.data.frame(class=seq(1:161), t(sdp_out$FarmWealth))
+colnames(w)=1:50
+w.long <- gather(data = w, key = class, value = wlth, factor_key = TRUE)
+# Heatmap 
+x <- sdp_out$FarmWealth
+plot.matrix(x, labels=list(seq(1:dim(x)[1]), seq(1:dim(x)[2])), drawlab=TRUE, diaglab=TRUE)
+
+wealth.map<-ggplot(data = w.long, mapping = aes(x = class, y = class,fill = wlth)) +
+  geom_tile() +
+  xlab(label = "Sample")
+
+wealth.map
+ggplot(sdp_out$FarmWealth, aes(X, Y, fill= FarmWealth)) + 
+  geom_tile()
 
 ```
 

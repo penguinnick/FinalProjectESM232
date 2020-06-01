@@ -13,6 +13,7 @@ source("./R/wealth.R")
 source("./R/wheat_yield.R")
 source("./R/barley_yield.R")
 source("./R/nnfix.R")
+source("./R/resetp0.R")
 
 sdp_farm <- function(f,s,b=best.strategy, parms, crop.parms, stock.parms, x_class, times, hsr=36, max_store=20, PrS=c(0.85)){
   

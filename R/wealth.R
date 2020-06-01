@@ -15,3 +15,4 @@ wealth <- function(x,t, x_max=160,x_crit=0)
   
   return(xx)
 }
+
