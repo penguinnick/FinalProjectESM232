@@ -20,13 +20,13 @@ Agricultural yields have great variation in the same crop by year, location, and
 #Example wheat data
 ```{r crops }
 source("./R/wheat_yield.R")
-<<<<<<< HEAD
+
 source("./R/barley_yield.R")
 #-- function for simulating crop yield data
 
 wheat<-data.frame(year=seq(1,50), mean_yield=rpois(50,lambda = 67))
 barley<-data.frame(year=seq(1,50), mean_yield=rpois(50,lambda = 74))
-=======
+
 
 example_yields=read_csv("example_yield.csv")
 
@@ -51,7 +51,6 @@ years = seq(from=1, to=100, by=1)
 yield_res= sapply(years, wheat_yield, yields = wheat_input)
 # keep track of what times we ran
 yield_den = data.frame(yield=yield_res, years=years)
->>>>>>> 45e48534190a790d1b433b07101140f123cff2ae
 
 ggplot(yield_den)+
   geom_histogram(aes(x=yield), fill="burlywood3")+
@@ -177,7 +176,8 @@ ggplot(goat75_agesl_off, aes(year, slaughtered, fill=agecat))+geom_col()+labs(y=
 ots <- data.frame(g50=tmp$goatoff50$offtot, g75=tmp$goatoff75$offtot )
 ots <- ots[-c(1:2),] # drop first two rows
 ots.g <- ots%>% gather(key="userate", value="count")
-=======
+
+
 ggplot(goat50_agesl_off, aes(year, pop, fill=agecat))+
   geom_col()+
   labs(y="Animals available for slaughter", fill="Age Group")+
@@ -188,7 +188,7 @@ ggplot(goat75_agesl_off, aes(year, pop, fill=agecat))+
   geom_col()+labs(y="Animals available for slaughter", fill="Age Group")+
   theme_classic()+
   scale_y_continuous(expand = c(0,0))
->>>>>>> 45e48534190a790d1b433b07101140f123cff2ae
+
 
 #-- A 50% use of naturally occuring herd deaths results in more animals available for offtake over a 50-year period
 ggplot(ots.g, aes(userate, count)) + geom_boxplot()
@@ -298,6 +298,34 @@ deficit.surplus <- function(hsr, gains, maxwealth, x, t){
 
 ```
 
+##Sensitivity analysis
+
+```{r}
+library(sensitivity)
+
+source("./R/evolve_pop_wofftake.R")
+
+np=100
+
+fert= rnorm(mean=0.50, sd=0.10, n=np)
+surviv = rnorm(mean=0.7, sd=0.1, n=np)
+X1 = cbind.data.frame(fert=fert, surviv=surviv)
+# repeat to get our second set of samples
+fert = rnorm(mean=0.50, sd=0.1, n=np)
+surviv = rnorm(mean=0.7, sd=0.1, n=np)
+X2 = cbind.data.frame(fert=fert, surviv=surviv)
+# create our sobel object and get sets ofparameters for running the model
+sens_P = sobol2007(model = NULL, X1,X2, nboot =300)
+
+sobol_res = mapply(FUN = evolve_pop_wofftake, fertility=sens_P$X1$fert,sensitivity=sens_P$X1$surviv, initialpop = goatini, nstep=nyears, offtake=offtake) 
+
+# gets results for 300 years (evaluating every year)
+parmslist = list(cct=cct, K=K, temp=temp, r=sens_P$X$r[1], g=sens_P$X$g[1])
+# parms = list(r=sens_P$X$r[1], g=sens_P$X$g[1], cct=cct, K=K, temp=temp)
+result = ode(y=yini, times=poptime, func=forestgrowth, parms=parmslist)
+result.df = data.frame(time=result[,1], size=result[,2] )
+ggplot(result.df, aes(x=time,y=size))+geom_point()
+```
 
 ##References 
 Milner-Gulland, E.J., Mace, R., Scoones, I.1996."A Model of Household Deciscions in Dryland Agropastoral Systems".Agricultral Systems. 51:4, 407-430.
