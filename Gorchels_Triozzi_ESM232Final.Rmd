@@ -307,15 +307,22 @@ source("./R/evolve_pop_wofftake.R")
 
 np=100
 
-fert= rnorm(mean=0.50, sd=0.10, n=np)
-surviv = rnorm(mean=0.7, sd=0.1, n=np)
+fert= c(rnorm(mean=0.50, sd=0.10, n=np), rnorm(mean=0.40, sd=0.2, n=np),rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np))
+
+#fert <- as.data.frame( p1 = rnorm(), p2=rnorm()
+
+surviv = c(rnorm(mean=0.7, sd=0.1, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np))
 X1 = cbind.data.frame(fert=fert, surviv=surviv)
+X1
 # repeat to get our second set of samples
 fert = rnorm(mean=0.50, sd=0.1, n=np)
 surviv = rnorm(mean=0.7, sd=0.1, n=np)
 X2 = cbind.data.frame(fert=fert, surviv=surviv)
 # create our sobel object and get sets ofparameters for running the model
 sens_P = sobol2007(model = NULL, X1,X2, nboot =300)
+
+
+#Fertility = list(sens$X1$p1, sens$X$p2, sens$X$p3…)
 
 sobol_res = mapply(FUN = evolve_pop_wofftake, fertility=sens_P$X1$fert,sensitivity=sens_P$X1$surviv, initialpop = goatini, nstep=nyears, offtake=offtake) 
 
