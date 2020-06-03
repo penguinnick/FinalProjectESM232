@@ -142,7 +142,7 @@ parms= list(x_crit=0, # critical mass to survive
 x_class=parms$x_crit:parms$x_max
 
 #-- stock and crop parms from above
-stock.parms= list(offtake=offtake, fertility=fertility, survivability=survivability, nstocks=2)
+stock.parms= list(offtake=offtake, fertility=fertility, survivability=survivability, nstocks=2, agecats=agecats)
 crop.parms=list(wheatY=wheatY, barleyY=barleyY, wl=67, bl=74, ncrops=2)
 
 # initialize outputs
@@ -155,53 +155,74 @@ t_max=parms$t_max
 # best.strategy <- matrix(nrow=parms$t_max,ncol=nclass ,0) # surplus
     
 # run function    
+# source("./R/sdp_farm2.R")
 sdp_out <- sdp_farm(parms = parms, crop.parms = crop.parms, stock.parms = stock.parms)
 
-# sdp_out<-sdp_farm(parms = parms, crop.parms = crop.parms, stock.parms = stock.parms, nclass = 160, PrS = 0.73)
 
 ```
 
 ```{r results - livestock}
-# livestock use rates for one wealth class over 50 years
-goatuse <- cbind.data.frame(year=seq(1:nyears), t(sdp_out$goatpop))
-agecats <- c("year", "0-1", "1-2", "2-3", "3-4", "4-5", "5-6", "6-7", "7-8", "8-9")
+# livestock use rates as dataframe
+goatp.df <- as.data.frame.table(sdp_out$goatpop, responseName = "count")
+colnames(goatp.df)=c("wealthClass", "year", "agecat", "n")
+head(goatp.df)
+
+# compare age structures of goat herds for different wealth classes
+goat.popwc30 <- goatp.df[goatp.df$wealthClass==30,]
+goat.popwc90 <- goatp.df[goatp.df$wealthClass==90,]
+goat.popwc120 <- goatp.df[goatp.df$wealthClass==120,]
+goat.popwc150 <- goatp.df[goatp.df$wealthClass==150,]
+goat.wcs <- rbind(goat.popwc30, goat.popwc90, goat.popwc120, goat.popwc150)
+ggplot(goat.wcs, aes(year, n, fill=agecat))+facet_wrap(~wealthClass)+geom_col()+labs(y="Population", fill="Age Group")
+
+
+
+goatuse <- cbind.data.frame(year=seq(1:50), apply(sdp_out$goatpop, c(1,2), sum))
+agecats <- c("year","0-1", "1-2", "2-3", "3-4", "4-5", "5-6", "6-7", "7-8", "8-9")
 colnames(goatuse)<- agecats
-ann.goatuse= goatuse %>% gather(key="agecat", value="pop",-year)
+ann.goatuse= goatuse %>% gather(key="agecat", value="pop")
 ggplot(ann.goatuse, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population", fill="Age Group")
 
 ```
 
 ```{r results - wealth}
+fw.df <- cbind.data.frame(classes=1:160, t(sdp_out$FarmWealth[-1,-1]))
+Fwealth = fw.df %>% gather(key="year", value="wealth", -classes)
+
+strat.df <- cbind.data.frame(classes=1:160, t(sdp_out$OptimalStrategy))
+OptStrat = strat.df %>% gather(key="year", value="Strategy", -classes)
+
+wealth.strats <- data.frame(wealthClass=OptStrat$classes, year=OptStrat$year, Strategy=OptStrat$Strategy, wealthState=Fwealth$wealth)
+wealthiest <- wealth.strats[wealth.strats$wealthClass>100,]
+
+ggplot(wealthiest, aes(year, wealthState, fill=as.factor(Strategy)))+geom_col(position="dodge")+labs(y="wealth", fill="strategy")
+
+ggplot(wealth.strats, aes(year, wealthState, fill=as.factor(wealthClass)))+geom_col(position="dodge")+labs(y="wealth", fill="Wealth Class")
+ggplot(popl, aes(timestep, pop,fill=as.factor(age)))+geom_col(position="dodge")+labs(fill="Age Group")
+
+
+ggplot(Fwealth, aes(year, wealth, fill=classes))+geom_col()+labs(y="wealth", fill="Wealth Class")
+
+v <- ggplot(faithfuld, aes(waiting, eruptions, z = density))
+v + geom_contour()
+
+v <- ggplot(Fwealth, aes(year, classes, z = wealth))
+v + geom_contour()
+
+d <- ggplot(Fwealth, aes(x = year, y=wealth)) 
+d + geom_bin2d(binwidth=c(0.5,0.5))
+
+
+
+```
+
+
+```{r more plots}
 # best strategy
 par(mfrow=c(1,1))
 image(x=times,y=x_class[-1],z=sdp_out$OptimalStrategy,ylab="wealth",xlab="time",zlim=c(0,4),main="optimal strategy",col=c("black","darkgrey","lightgrey","white", "blue"))+legend("topleft",fill=c("black","darkgrey","lightgrey","white", "blue"),legend=c("destitute","wheat&50%","wheat&75%","barley&50%", "barley&75%"))+contour(x=1:t_max,y=x_class,z=sdp_out$FarmWealth,add=TRUE)+legend("topright",legend="fitness",lty=1)
 
 
-ggplot()
-
-library(ggplot2)
-
-# Dummy data
-x <- LETTERS[1:20]
-y <- paste0("var", seq(1,20))
-data <- expand.grid(X=x, Y=y)
-data$Z <- runif(400, 0, 5)
-
-mine.long <- gather(data = mine.data, key = Class, value = Abundance)
-w <- cbind.data.frame(class=seq(1:161), t(sdp_out$FarmWealth))
-colnames(w)=1:50
-w.long <- gather(data = w, key = class, value = wlth, factor_key = TRUE)
-# Heatmap 
-x <- sdp_out$FarmWealth
-plot.matrix(x, labels=list(seq(1:dim(x)[1]), seq(1:dim(x)[2])), drawlab=TRUE, diaglab=TRUE)
-
-wealth.map<-ggplot(data = w.long, mapping = aes(x = class, y = class,fill = wlth)) +
-  geom_tile() +
-  xlab(label = "Sample")
-
-wealth.map
-ggplot(sdp_out$FarmWealth, aes(X, Y, fill= FarmWealth)) + 
-  geom_tile()
 
 ```
 
