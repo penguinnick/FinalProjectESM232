@@ -8,19 +8,26 @@
 
 
 reset.p0 <- function(Livestock.list, bestV, classes=9, even_odd=TRUE){
-  L <- Livestock.list
-  mnewpop <- matrix(nrow = classes, ncol = length(L)) # vector(length = length(L))
-  for(i in 1:length(L)){
-    p <- L[[i]]
-    p.df <- as.data.frame(p)
-    p.df[,2] <- ifelse(p.df[,2]<0,0,p.df[,2]) # sets negative numbers to 0
-    mnewpop[,i]<- p.df[,2]
-  }
+  l <- Livestock.list
+  r <- c(1, length(l))
+  l <- sapply(r, function(r){l[[r]]})
   if(even_odd==TRUE){
     p.ind <- ifelse(bestV%%2==0, 2, 1)
   } else {
     p.ind <- bestV
   }
-  next.pop<-mnewpop[,p.ind]
+  next.pop<- l[,p.ind]
+  # next.pop<- L[[1]][3]
+  
+  # mnewpop <- matrix(nrow = classes, ncol = length(L)) # vector(length = length(L))
+  # for(i in 1:length(L)){
+  #   p <- L[[i]]
+  #   p.df <- as.data.frame(p)
+  #   p.df[,2] <- ifelse(p.df[,2]<0,0,p.df[,2]) # sets negative numbers to 0
+  #   mnewpop[,i]<- p.df[,2]
+  # }
+  
+  # next.pop<-mnewpop[,p.ind]
+  # next.pop<-L[,p.ind] # [[p.ind]]$popbyage[,2]
   return(next.pop)
 }

@@ -190,7 +190,7 @@ ggplot(goat75_agesl_off, aes(year, slaughtered, fill=agecat))+
 #-- over the 50 year period, which strategy obtains more meat?
 s <- c(1,2)
 y <- seq(1:ncol(tmp[[1]]$offtakes))
-ot.yr <- sapply(s, function(s){sapply(years, function(y){sum(tmp[[s]]$offtakes[,y])})})
+ot.yr <- sapply(s, function(s){sapply(yrs, function(y){sum(tmp[[s]]$offtakes[,y])})})
 ot.df <- as.data.frame(ot.yr)
 colnames(ot.df) <- c("g50", "g75")
 ot.yr <- ot.df%>% gather(key="userate", value="annual.total")
@@ -200,11 +200,10 @@ ggplot(ot.yr, aes(userate, annual.total)) + geom_boxplot() +
 
 
 #-- A 50% use of naturally occuring herd deaths results in more animals available for offtake over a 50-year period
-ots <- data.frame(g50=tmp[[1]]$offtakes, g75=tmp[[2]]$newstock)
-ots <- data.frame(g50=tmp[[1]]$newstock, g75=tmp[[2]]$newstock)
-head(ots)
-ots <- ots[-2,]%>% gather(key="newstock", value="count")
-ggplot(ots, aes(newstock, count)) + geom_boxplot() + ggtitle("Annual Births for each strategy")
+newstock <- data.frame(g50=tmp[[1]]$newstock, g75=tmp[[2]]$newstock)
+head(newstock)
+newstock <- newstock[-1,]%>% gather(key="newstock", value="count")
+ggplot(newstock, aes(newstock, count)) + geom_boxplot() + ggtitle("Annual Births for each strategy")
 
 
 
@@ -240,35 +239,35 @@ nyears=50
 #             max_store=20) 
 
 parms= list(x_crit=0, # critical mass to survive
-            x_max=100, # maximal mass
-            t_max=50, # number of time steps
-            hsr=36,
-            maxwealth=100,
-            max_store=20) 
+            x_max=160, # maximal mass
+            t_max=50,
+            maxwealth=160) # number of time steps) 
 
 
-parms= list(x_crit=0, # critical mass to survive
-            x_max=50, # maximal mass
-            t_max=100, # number of time steps
-            maxwealth=50) 
+# parms= list(x_crit=0, # critical mass to survive
+#             x_max=50, # maximal mass
+#             t_max=100, # number of time steps
+#             maxwealth=50) 
 
 
-x_class=parms$x_crit:parms$x_max
+# x_class=parms$x_crit:parms$x_max
 
 #-- stock and crop parms from above
-stock.parms= list(offtake=offtakerate, fertility=fertility, survivability=survivability, nstocks=2)
+stock.parms= list(offtake=offtakerate, fertility=fertility, survivability=survivability, nstocks=2, initialpop=p0)
 crop.parms=list(wheatY=wheat, barleyY=barley, wl=67, bl=74, ncrops=2)
 
 # initialize outputs
-times=seq(1:parms$t_max)
-nclass=length(x_class)
-f <- matrix(nrow=parms$t_max,ncol=nclass ,0) # optimal fitness
-s <- matrix(nrow=parms$t_max,ncol=nclass ,0) # surplus
-best.strategy <- matrix(nrow=parms$t_max-1,ncol=nclass-1,0) # best patch
+# times=seq(1:parms$t_max)
+# nclass=length(x_class)
+# f <- matrix(nrow=parms$t_max,ncol=nclass ,0) # optimal fitness
+# s <- matrix(nrow=parms$t_max,ncol=nclass ,0) # surplus
+# best.strategy <- matrix(nrow=parms$t_max-1,ncol=nclass-1,0) # best patch
     
 # run function    
 # sdp_out=sdp_farm(f,s, times = times, parms = parms, crop.parms = crop.parms, stock.parms = stock.parms, x_class = x_class)
-sdp_out=sdp_farm(f,s, times = times, parms = parms, crop.parms = crop.parms, stock.parms = stock.parms, x_class = x_class)
+# sdp_out=sdp_farm(f,s, times = times, parms = parms, crop.parms = crop.parms, stock.parms = stock.parms, x_class = x_class)
+# sdp_out=sdp_farm(f,s, times = times, parms = parms, crop.parms = crop.parms, stock.parms = stock.parms, x_class = x_class)
+sdp_out=sdp_farm(parms = parms, crop.parms = crop.parms, stock.parms = stock.parms)
 # 
 # par(mfrow=c(1,1))
 # image(x=1:ncol(sdp_out$FarmWealth),y=parms$x_class[-1],z=sdp_out$OptimalStrategy,ylab="weight",xlab="time",zlim=c(0,4),

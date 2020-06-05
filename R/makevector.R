@@ -2,13 +2,25 @@
 #' @param Livestock.list a list of counts of individuals for each age class resulting from births, deaths, and offtakes
 #' @return a vector containing the third item in each list
 
+# make.vector <- function(Livestock.list){
+#   L <- Livestock.list
+#   vL <- vector(length = length(L))
+#   v <- vector(length = length(L))
+#   for(i in 1: length(L)){
+#     vL[i] <- L[[i]][4]
+#     v[i] <- vL[[i]][3]
+#   }
+#   return(v)
+# }
+
 make.vector <- function(Livestock.list){
   L <- Livestock.list
   vL <- vector(length = length(L))
   v <- vector(length = length(L))
   for(i in 1: length(L)){
-    vL[i] <- L[[i]][4]
-    v[i] <- vL[[i]][3]
+    vL[i] <- sum(L[[i]]$offtakes[,i])
+    # v[i] <- vL[[i]][3]
   }
-  return(v)
+  # return(v)
+  return(vL)
 }
