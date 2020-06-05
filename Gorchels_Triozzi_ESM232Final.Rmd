@@ -385,6 +385,12 @@ Big build up
 ```
 
 ##Sensitivity analysis
+goatfert =  c(0,0.150,0.410,0.550,0.705, 0.695, 0.725, 0.515,0.515)
+fertility = goatfert
+
+# survivability - based on mortality rates female sheep (Redding Table IV-7)
+goatsurv <- c(0.55, 0.90, 0.90, 0.95, 0.95, 0.90, 0.75, 0.50, 0.00)
+survivability <- goatsurv
 
 ```{r}
 library(sensitivity)
@@ -393,31 +399,72 @@ source("./R/evolve_pop_wofftakeK.R")
 
 np=100
 
-fert= c(rnorm(mean=0.50, sd=0.10, n=np), rnorm(mean=0.40, sd=0.2, n=np),rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np))
+f1=rnorm(mean = 0, sd=0.10, n=1)
+f2=rnorm(mean = 0.150, sd=0.10, n=1)
+f3=rnorm(mean = 0.410, sd=0.10, n=1)
+f4=rnorm(mean = 0.550, sd=0.10, n=1)
+f5=rnorm(mean = 0.705, sd=0.10, n=1)
+f6=rnorm(mean = 0.695,sd=0.10, n=1)
+f7=rnorm(mean = 0.725,sd=0.10, n=1)
+f8=rnorm(mean = 0.515,sd=0.10, n=1)
+f9=rnorm(mean = 0.515,sd=0.10, n=1)
 
-#fert <- as.data.frame( p1 = rnorm(), p2=rnorm()
+fert = cbind.data.frame(f1=f1, f2=f2, f3=f3, f4=f4, f5=f5, f6=f6, f7=f7, f8=f8, f9=f9)
 
-surviv = c(rnorm(mean=0.7, sd=0.1, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np), rnorm(mean=0.40, sd=0.2, n=np))
-X1 = cbind.data.frame(fert=fert, surviv=surviv)
-X1
-# repeat to get our second set of samples
-fert = rnorm(mean=0.50, sd=0.1, n=np)
-surviv = rnorm(mean=0.7, sd=0.1, n=np)
-X2 = cbind.data.frame(fert=fert, surviv=surviv)
+f1_2=rnorm(mean = 0, sd=0.10, n=1)
+f2_2=rnorm(mean = 0.150, sd=0.10, n=1)
+f3_2=rnorm(mean = 0.410, sd=0.10, n=1)
+f4_2=rnorm(mean = 0.550, sd=0.10, n=1)
+f5_2=rnorm(mean = 0.705, sd=0.10, n=1)
+f6_2=rnorm(mean = 0.695,sd=0.10, n=1)
+f7_2=rnorm(mean = 0.725,sd=0.10, n=1)
+f8_2=rnorm(mean = 0.515,sd=0.10, n=1)
+f9_2=rnorm(mean = 0.515,sd=0.10, n=1)
+
+fert_2 = cbind.data.frame(f1=f1_2, f2=f2_2, f3=f3_2, f4=f4_2, f5=f5_2, f6=f6_2, f7=f7_2, f8=f8_2, f9=f9_2)
+
+
 # create our sobel object and get sets ofparameters for running the model
-sens_P = sobol2007(model = NULL, X1,X2, nboot =300)
+sens_P = sobol2007(model = NULL, fert,fert_2, nboot =300)
 
+#c(sens_P$X1$f1,sens_P$X1$f2,sens_P$X1$f3,sens_P$X1$f4,sens_P$X1$f5, sens_P$X1$f6, sens_P$X1$f7, sens_P$X1$f8,sens_P$X1$f9)
 
-#Fertility = list(sens$X1$p1, sens$X$p2, sens$X$p3…)
+fertility = c(sens_P$X1$f1,sens_P$X1$f2,sens_P$X1$f3,sens_P$X1$f4,sens_P$X1$f5, sens_P$X1$f6, sens_P$X1$f7, sens_P$X1$f8,sens_P$X1$f9)
 
-sobol_res = mapply(FUN = evolve_pop_wofftake, fertility=sens_P$X1$fert,sensitivity=sens_P$X1$surviv, initialpop = goatini, nstep=nyears, offtake=offtake) 
+results_soble = lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility=c(sens_P$X1$f1,sens_P$X1$f2,sens_P$X1$f3,sens_P$X1$f4,sens_P$X1$f5, sens_P$X1$f6, sens_P$X1$f7, sens_P$X1$f8,sens_P$X1$f9), survivability, initialpop = p0, nstep = nyears, offtake=o); return(tmp)})
 
-# gets results for 300 years (evaluating every year)
-parmslist = list(cct=cct, K=K, temp=temp, r=sens_P$X$r[1], g=sens_P$X$g[1])
-# parms = list(r=sens_P$X$r[1], g=sens_P$X$g[1], cct=cct, K=K, temp=temp)
-result = ode(y=yini, times=poptime, func=forestgrowth, parms=parmslist)
-result.df = data.frame(time=result[,1], size=result[,2] )
-ggplot(result.df, aes(x=time,y=size))+geom_point()
+#sobol_res = mapply(FUN = evolve_pop_wofftake, 
+#                   fertility=c(sens_P$X1$f1,sens_P$X1$f2,sens_P$X1$f3,sens_P$X1$f4,sens_P$X1$f5, sens_P$X1$f6, sens_P$X1$f7, sens_P$X1$f8,sens_P$X1$f9), 
+#                   survivability=c(sens_P$X1$f1,sens_P$X1$f2,sens_P$X1$f3,sens_P$X1$f4,sens_P$X1$f5, sens_P$X1$f6, sens_P$X1$f7, sens_P$X1$f8,sens_P$X1$f9), 
+ #                  initialpop = goatini,
+  #                 nstep=nyears, 
+   #                offtake=offtake) 
+
+sens_sobol2 = sensitivity::tell(sens_sobol2, results_soble, res.names="mean_yield")
+
+# first-order indices (main effect without co-variance)
+sens_almond_sobol2$S
+
+# total sensitivity index - note that this partitions the output variance - so values sum to 1
+sens_almond_sobol2$T
+
+print(sens_almond_sobol2)
+plot(sens_almond_sobol2)
+
+# making a datafram for plotting
+both2 = cbind.data.frame(sens_almond_sobol2$X, yield=sens_almond_sobol2$y)
+
+# Looking at the response to the two most important variables
+ggplot(both2, aes(precip_coeff2, yield, col = precip_coeff)) +
+  geom_point() +
+  labs(x = "Precipitation Coefficient 2", y = "Yield Anamoly") +
+  theme_classic()
+
+ggplot(both2, aes(y = yield)) +
+  geom_boxplot() +
+  theme_classic() +
+  scale_y_continuous()
+
 ```
 
 ##References 
