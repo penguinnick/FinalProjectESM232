@@ -135,6 +135,7 @@ evolve_pop_wofftake(fertility = fertility, survivability = survivability,initial
 
 
 ```{r plot livestock, echo=FALSE}
+
 tmp<-lapply(offtakerate, function(o){tmp=evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = o, K=220, minHerd = 160); return(tmp)})
 
 yrs=seq(1:(nyears-1))
@@ -164,7 +165,9 @@ ggplot(goat50_agesl, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population"
 ggplot(goat75_agesl, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population", fill="Age Group")+
   theme_classic()+
   scale_y_continuous(expand = c(0,0))
-
+```
+#-- compare offtake trends for both strategies 
+```{r}
 #-- compare offtake trends for both strategies 
 goat50off=cbind.data.frame(year=seq(2:nyears), t(tmp[[1]]$offtakes))
 goat75off=cbind.data.frame(year=seq(2:nyears), t(tmp[[2]]$offtakes))
@@ -187,6 +190,10 @@ ggplot(goat75_agesl_off, aes(year, slaughtered, fill=agecat))+
   theme_classic()+
   scale_y_continuous(expand = c(0,0))
 
+```
+
+## over the 50 year period, which strategy obtains more meat?
+```{r }
 #-- over the 50 year period, which strategy obtains more meat?
 s <- c(1,2)
 y <- seq(1:ncol(tmp[[1]]$offtakes))
@@ -197,8 +204,11 @@ ot.yr <- ot.df%>% gather(key="userate", value="annual.total")
 
 ggplot(ot.yr, aes(userate, annual.total)) + geom_boxplot() + 
   labs(title ="Total offtakes per year for each strategy", subtitle = "Carrying Capacity=200, Min herd size=160")
+```
 
+## A 50% use of naturally occuring herd deaths results in more animals available for offtake over a 50-year period
 
+```{r }
 #-- A 50% use of naturally occuring herd deaths results in more animals available for offtake over a 50-year period
 newstock <- data.frame(g50=tmp[[1]]$newstock, g75=tmp[[2]]$newstock)
 head(newstock)
@@ -209,14 +219,16 @@ ggplot(newstock, aes(newstock, count)) + geom_boxplot() + ggtitle("Annual Births
 
 ```
 
+
+
 ```{r sensitivity livestock}
 compute.offtake.metrics <- function(res){
   s=1:length(res)
   yrs=1:ncol(res[[1]]$offtakes)
   tot.annual.offtake = sapply(s, function(s){sapply(yrs, function(y){sum(tmp[[s]]$offtakes[,y])})})
   avg.annual.offtake = sapply(s, function(s){mean(tot.annual.offtake[,s])})
-  # return(avg.annual.offtake)
-  return(tot.annual.offtake)
+  return(avg.annual.offtake)
+  # return(tot.annual.offtake)
 }
 compute.offtake.metrics(tmp)
 
@@ -256,33 +268,18 @@ parms= list(x_crit=0, # critical mass to survive
 stock.parms= list(offtake=offtakerate, fertility=fertility, survivability=survivability, nstocks=2, initialpop=p0)
 crop.parms=list(wheatY=wheat, barleyY=barley, wl=67, bl=74, ncrops=2)
 
-# initialize outputs
-# times=seq(1:parms$t_max)
-# nclass=length(x_class)
-# f <- matrix(nrow=parms$t_max,ncol=nclass ,0) # optimal fitness
-# s <- matrix(nrow=parms$t_max,ncol=nclass ,0) # surplus
-# best.strategy <- matrix(nrow=parms$t_max-1,ncol=nclass-1,0) # best patch
-    
+source("./R/sdp_farm_v3.R")
 # run function    
-# sdp_out=sdp_farm(f,s, times = times, parms = parms, crop.parms = crop.parms, stock.parms = stock.parms, x_class = x_class)
-# sdp_out=sdp_farm(f,s, times = times, parms = parms, crop.parms = crop.parms, stock.parms = stock.parms, x_class = x_class)
-# sdp_out=sdp_farm(f,s, times = times, parms = parms, crop.parms = crop.parms, stock.parms = stock.parms, x_class = x_class)
 sdp_out=sdp_farm(parms = parms, crop.parms = crop.parms, stock.parms = stock.parms)
-# 
-# par(mfrow=c(1,1))
-# image(x=1:ncol(sdp_out$FarmWealth),y=parms$x_class[-1],z=sdp_out$OptimalStrategy,ylab="weight",xlab="time",zlim=c(0,4),
-# main="optimal patch",col=c("black","darkgrey","lightgrey","white"))
-# box()
-# legend("topleft",fill=c("black","darkgrey","lightgrey","white"),
-# legend=c("dead","1","2","3"))
-# contour(x=1:parms$t_max,y=x_class,z=sdp_out$FarmWealth,add=TRUE)
-# legend("topright",legend="fitness",lty=1)
+
 
 f1<-sdp_out$FarmWealth
 bestpatch <- sdp_out$OptimalStrategy
+times=seq(1:parms$t_max)
+x_class=1:parms$x_max
+
 par(mfrow=c(1,1))
-image(x=times,y=x_class[-
-1],z=bestpatch,ylab="farm size",xlab="time",zlim=c(0,3),
+image(x=times[-1],y=x_class[-1],z=bestpatch,ylab="farm size",xlab="time",zlim=c(0,4),
 main="optimal patch",col= topo.colors(5))
 box()
 legend("topleft",fill=topo.colors(5),
@@ -290,7 +287,7 @@ legend=c("destitute","1","2","3", "4"))
 contour(x=1:parms$t_max,y=x_class,z=f1,add=TRUE)
 legend("topright",legend="fitness",lty=1)
 
- 
+
 
 ```
 
@@ -395,74 +392,55 @@ survivability <- goatsurv
 library(sensitivity)
 
 source("./R/evolve_pop_wofftakeK.R")
+tmp<-lapply(offtakerate, function(o){tmp=evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = o, K=220, minHerd = 160); return(tmp)})
+
+evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = o, K=220, minHerd = 160)
+np=100
+Off <- rnorm(mean = 0.5, sd=0.25, n=np)
+K <- rnorm(mean = 220, sd=60, n=np)
+minHerd <- rnorm(mean = 160, sd=30, n=np)
+
+X1 = cbind.data.frame(Off=Off, K=K, minHerd=minHerd)
 
 np=100
+Off <- rnorm(mean = 0.5, sd=0.25, n=np)
+K <- rnorm(mean = 220, sd=60, n=np)
+minHerd <- rnorm(mean = 160, sd=30, n=np)
 
-f1=rnorm(mean = 0, sd=0.10, n=1)
-f2=rnorm(mean = 0.150, sd=0.10, n=1)
-f3=rnorm(mean = 0.410, sd=0.10, n=1)
-f4=rnorm(mean = 0.550, sd=0.10, n=1)
-f5=rnorm(mean = 0.705, sd=0.10, n=1)
-f6=rnorm(mean = 0.695,sd=0.10, n=1)
-f7=rnorm(mean = 0.725,sd=0.10, n=1)
-f8=rnorm(mean = 0.515,sd=0.10, n=1)
-f9=rnorm(mean = 0.515,sd=0.10, n=1)
-
-fert = cbind.data.frame(f1=f1, f2=f2, f3=f3, f4=f4, f5=f5, f6=f6, f7=f7, f8=f8, f9=f9)
-
-f1_2=rnorm(mean = 0, sd=0.10, n=1)
-f2_2=rnorm(mean = 0.150, sd=0.10, n=1)
-f3_2=rnorm(mean = 0.410, sd=0.10, n=1)
-f4_2=rnorm(mean = 0.550, sd=0.10, n=1)
-f5_2=rnorm(mean = 0.705, sd=0.10, n=1)
-f6_2=rnorm(mean = 0.695,sd=0.10, n=1)
-f7_2=rnorm(mean = 0.725,sd=0.10, n=1)
-f8_2=rnorm(mean = 0.515,sd=0.10, n=1)
-f9_2=rnorm(mean = 0.515,sd=0.10, n=1)
-
-fert_2 = cbind.data.frame(f1=f1_2, f2=f2_2, f3=f3_2, f4=f4_2, f5=f5_2, f6=f6_2, f7=f7_2, f8=f8_2, f9=f9_2)
+X2 = cbind.data.frame(Off=Off, K=K, minHerd=minHerd)
 
 
-# create our sobel object and get sets ofparameters for running the model
-sens_P = sobol2007(model = NULL, fert,fert_2, nboot =300)
+sens_P_livestock = sobol2007(model = NULL, X1,X2, nboot =300)
 
-#c(sens_P$X1$f1,sens_P$X1$f2,sens_P$X1$f3,sens_P$X1$f4,sens_P$X1$f5, sens_P$X1$f6, sens_P$X1$f7, sens_P$X1$f8,sens_P$X1$f9)
+avg.offtakes <- function(res){
+  alist <- res[3,]
+  annavgs=lapply(alist, function(a){ann.totals=mean(apply(a,2,FUN = sum))})
+  return(annavgs)
+}
 
-fertility = c(sens_P$X1$f1,sens_P$X1$f2,sens_P$X1$f3,sens_P$X1$f4,sens_P$X1$f5, sens_P$X1$f6, sens_P$X1$f7, sens_P$X1$f8,sens_P$X1$f9)
+res = unlist(avg.offtakes(mapply(FUN = evolve_pop_wofftake, offtake=sens_P_livestock$X$Off, K=sens_P_livestock$X$K, minHerd=sens_P_livestock$X$minHerd, MoreArgs = list(fertility, survivability, p0, nstep=nyears)))) #; return(compute.offtake.metrics(tmp))})
 
-results_soble = lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility=c(sens_P$X1$f1,sens_P$X1$f2,sens_P$X1$f3,sens_P$X1$f4,sens_P$X1$f5, sens_P$X1$f6, sens_P$X1$f7, sens_P$X1$f8,sens_P$X1$f9), survivability, initialpop = p0, nstep = nyears, offtake=o); return(tmp)})
+sens_P_livestock = sensitivity::tell(sens_P_livestock, unlist(res), res.names="avg.ann.offtake")
 
-#sobol_res = mapply(FUN = evolve_pop_wofftake, 
-#                   fertility=c(sens_P$X1$f1,sens_P$X1$f2,sens_P$X1$f3,sens_P$X1$f4,sens_P$X1$f5, sens_P$X1$f6, sens_P$X1$f7, sens_P$X1$f8,sens_P$X1$f9), 
-#                   survivability=c(sens_P$X1$f1,sens_P$X1$f2,sens_P$X1$f3,sens_P$X1$f4,sens_P$X1$f5, sens_P$X1$f6, sens_P$X1$f7, sens_P$X1$f8,sens_P$X1$f9), 
- #                  initialpop = goatini,
-  #                 nstep=nyears, 
-   #                offtake=offtake) 
+sens_P_livestock$S
+sens_P_livestock$T
 
-sens_sobol2 = sensitivity::tell(sens_sobol2, results_soble, res.names="mean_yield")
-
-# first-order indices (main effect without co-variance)
-sens_almond_sobol2$S
-
-# total sensitivity index - note that this partitions the output variance - so values sum to 1
-sens_almond_sobol2$T
-
-print(sens_almond_sobol2)
-plot(sens_almond_sobol2)
+print(sens_P_livestock)
+plot(sens_P_livestock, ylim = c(-3,3))
 
 # making a datafram for plotting
-both2 = cbind.data.frame(sens_almond_sobol2$X, yield=sens_almond_sobol2$y)
+both = cbind.data.frame(sens_P_livestock$X, results=sens_P_livestock$y)
+
+# look at response of conductance to the two most important variables
+ggplot(both, aes(Off,results, col=K))+geom_point()+labs(y="average animals slaughtered annually", x="offtake rate") + ggtitle("Results of sensitivity analysis of results of livestock submodel")
 
 # Looking at the response to the two most important variables
-ggplot(both2, aes(precip_coeff2, yield, col = precip_coeff)) +
+ggplot(both, aes(minHerd, results, col = K)) +
   geom_point() +
-  labs(x = "Precipitation Coefficient 2", y = "Yield Anamoly") +
+  labs(x = "min herd size", y ="average animals slaughtered annually") +
   theme_classic()
 
-ggplot(both2, aes(y = yield)) +
-  geom_boxplot() +
-  theme_classic() +
-  scale_y_continuous()
+
 
 ```
 
