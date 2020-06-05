@@ -97,7 +97,7 @@ We're only interested in herd growth during one time step, and input parameters,
 
 ```{r livestock, echo=FALSE}
 
-source("./R/evolve_pop_wofftake.R")
+source("./R/evolve_pop_wofftakeK.R")
 
 nyears=50
 nyears=nyears
@@ -119,18 +119,14 @@ goatini=p0
 initialpop = goatini
 
 # offtake rate per 100 adult does at 50% use rate of animals to die
-goatoff=list(goatoff50 = c(10.8, 1.1, 0.9, 0.3, 0.3, 0.6, 1.1, 1.5 , 1.5),  # at 50%
-     goatoff75 = c(16.2, 1.7, 1.4, 0.5, 0.4, 0.9, 1.6, 2.2 , 2.2)) # at 75% use rate
+# goatoff=list(goatoff50 = c(10.8, 1.1, 0.9, 0.3, 0.3, 0.6, 1.1, 1.5 , 1.5),  # at 50%
+     # goatoff75 = c(16.2, 1.7, 1.4, 0.5, 0.4, 0.9, 1.6, 2.2 , 2.2)) # at 75% use rate
 
-offtake= lapply(goatoff, function(o){o/p0}) # create offtake rates as % of initial population
+# offtake= lapply(goatoff, function(o){o/p0}) # create offtake rates as % of initial population
 
-# return mean offtake for each strategy
-lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = nyears, offtake=o); return(list(mean=mean(tmp[]$offtot)))})
+offtakerate= c(0.50, 0.75)
 
-# return mean offtake for each strategy
-lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = nyears, offtake=o); return(list(sd=sd(tmp[]$offtot)))})
-
-tmp <- lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility, survivability, initialpop = p0, nstep = nyears, offtake=o); return(tmp)})
+evolve_pop_wofftake(fertility = fertility, survivability = survivability,initialpop = p0, nstep = nyears, offtake = 0.75, K=220, minHerd = 140) 
 
 
 
@@ -139,13 +135,24 @@ tmp <- lapply(offtake,function(o){tmp=evolve_pop_wofftake(fertility, survivabili
 
 
 ```{r plot livestock, echo=FALSE}
+tmp<-lapply(offtakerate, function(o){tmp=evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = o, K=220, minHerd = 160); return(tmp)})
+
+yrs=seq(1:(nyears-1))
+s=1:length(offtakerate)
+# total offtake per year
+tot.annual.offtake = sapply(s, function(s){sapply(yrs, function(y){sum(tmp[[s]]$offtakes[,y])})})
+tot.annual.offtake
+
+
 
 #-- compare population trends for both strategies 
-goat50=cbind.data.frame(year=seq(1:nyears), t(tmp$goatoff50$popbyage))
-goat75=cbind.data.frame(year=seq(1:nyears), t(tmp$goatoff75$popbyage))
+goat50=cbind.data.frame(year=seq(1:nyears), t(tmp[[1]]$popbyage))
+goat75=cbind.data.frame(year=seq(1:nyears), t(tmp[[2]]$popbyage))
+
 agecats <- c("year", "0-1", "1-2", "2-3", "3-4", "4-5", "5-6", "6-7", "7-8", "8-9")
 colnames(goat50)<- agecats
 colnames(goat75)<- agecats
+
 goat50_agesl= goat50 %>% gather(key="agecat", value="pop",-year)
 goat75_agesl= goat75 %>% gather(key="agecat", value="pop",-year)
 
@@ -159,8 +166,8 @@ ggplot(goat75_agesl, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population"
   scale_y_continuous(expand = c(0,0))
 
 #-- compare offtake trends for both strategies 
-goat50off=cbind.data.frame(year=seq(2:nyears), t(tmp$goatoff50$offtakes))
-goat75off=cbind.data.frame(year=seq(2:nyears), t(tmp$goatoff75$offtakes))
+goat50off=cbind.data.frame(year=seq(2:nyears), t(tmp[[1]]$offtakes))
+goat75off=cbind.data.frame(year=seq(2:nyears), t(tmp[[2]]$offtakes))
 colnames(goat50off)<- agecats 
 colnames(goat75off)<- agecats
 goat50_agesl_off= goat50off %>% gather(key="agecat", value="slaughtered",-year)
@@ -169,29 +176,50 @@ goat75_agesl_off= goat75off %>% gather(key="agecat", value="slaughtered",-year)
 # plots
 
 ### Facet wrap woul be nice here
-ggplot(goat50_agesl_off, aes(year, slaughtered, fill=agecat))+geom_col()+labs(y="Animals available for slaughter", fill="Age Group")
-ggplot(goat75_agesl_off, aes(year, slaughtered, fill=agecat))+geom_col()+labs(y="Animals available for slaughter", fill="Age Group")
-
-#-- over the 50 year period, which strategy obtains more meat?
-ots <- data.frame(g50=tmp$goatoff50$offtot, g75=tmp$goatoff75$offtot )
-ots <- ots[-c(1:2),] # drop first two rows
-ots.g <- ots%>% gather(key="userate", value="count")
-
-
-ggplot(goat50_agesl_off, aes(year, pop, fill=agecat))+
+ggplot(goat50_agesl_off, aes(year, slaughtered, fill=agecat))+
   geom_col()+
   labs(y="Animals available for slaughter", fill="Age Group")+
   theme_classic()+
   scale_y_continuous(expand = c(0,0))
 
-ggplot(goat75_agesl_off, aes(year, pop, fill=agecat))+
+ggplot(goat75_agesl_off, aes(year, slaughtered, fill=agecat))+
   geom_col()+labs(y="Animals available for slaughter", fill="Age Group")+
   theme_classic()+
   scale_y_continuous(expand = c(0,0))
 
+#-- over the 50 year period, which strategy obtains more meat?
+s <- c(1,2)
+y <- seq(1:ncol(tmp[[1]]$offtakes))
+ot.yr <- sapply(s, function(s){sapply(years, function(y){sum(tmp[[s]]$offtakes[,y])})})
+ot.df <- as.data.frame(ot.yr)
+colnames(ot.df) <- c("g50", "g75")
+ot.yr <- ot.df%>% gather(key="userate", value="annual.total")
+
+ggplot(ot.yr, aes(userate, annual.total)) + geom_boxplot() + 
+  labs(title ="Total offtakes per year for each strategy", subtitle = "Carrying Capacity=200, Min herd size=160")
+
 
 #-- A 50% use of naturally occuring herd deaths results in more animals available for offtake over a 50-year period
-ggplot(ots.g, aes(userate, count)) + geom_boxplot()
+ots <- data.frame(g50=tmp[[1]]$offtakes, g75=tmp[[2]]$newstock)
+ots <- data.frame(g50=tmp[[1]]$newstock, g75=tmp[[2]]$newstock)
+head(ots)
+ots <- ots[-2,]%>% gather(key="newstock", value="count")
+ggplot(ots, aes(newstock, count)) + geom_boxplot() + ggtitle("Annual Births for each strategy")
+
+
+
+```
+
+```{r sensitivity livestock}
+compute.offtake.metrics <- function(res){
+  s=1:length(res)
+  yrs=1:ncol(res[[1]]$offtakes)
+  tot.annual.offtake = sapply(s, function(s){sapply(yrs, function(y){sum(tmp[[s]]$offtakes[,y])})})
+  avg.annual.offtake = sapply(s, function(s){mean(tot.annual.offtake[,s])})
+  # return(avg.annual.offtake)
+  return(tot.annual.offtake)
+}
+compute.offtake.metrics(tmp)
 
 ```
 
@@ -204,17 +232,31 @@ Here we create lists containing the parameters for the sdp function. There are t
 
 ```{r set up for sdp, echo=FALSE}
 nyears=50
+# parms= list(x_crit=0, # critical mass to survive
+#             x_max=160, # maximal mass
+#             t_max=50, # number of time steps
+#             hsr=36,
+#             maxwealth=160,
+#             max_store=20) 
+
 parms= list(x_crit=0, # critical mass to survive
-            x_max=160, # maximal mass
+            x_max=100, # maximal mass
             t_max=50, # number of time steps
             hsr=36,
-            maxwealth=160,
+            maxwealth=100,
             max_store=20) 
+
+
+parms= list(x_crit=0, # critical mass to survive
+            x_max=50, # maximal mass
+            t_max=100, # number of time steps
+            maxwealth=50) 
+
 
 x_class=parms$x_crit:parms$x_max
 
 #-- stock and crop parms from above
-stock.parms= list(offtake=offtake, fertility=fertility, survivability=survivability, nstocks=2)
+stock.parms= list(offtake=offtakerate, fertility=fertility, survivability=survivability, nstocks=2)
 crop.parms=list(wheatY=wheat, barleyY=barley, wl=67, bl=74, ncrops=2)
 
 # initialize outputs
@@ -225,9 +267,31 @@ s <- matrix(nrow=parms$t_max,ncol=nclass ,0) # surplus
 best.strategy <- matrix(nrow=parms$t_max-1,ncol=nclass-1,0) # best patch
     
 # run function    
-sdp_farm(f,s, times = times, parms = parms, crop.parms = crop.parms, stock.parms = stock.parms, x_class = x_class)
+# sdp_out=sdp_farm(f,s, times = times, parms = parms, crop.parms = crop.parms, stock.parms = stock.parms, x_class = x_class)
+sdp_out=sdp_farm(f,s, times = times, parms = parms, crop.parms = crop.parms, stock.parms = stock.parms, x_class = x_class)
+# 
+# par(mfrow=c(1,1))
+# image(x=1:ncol(sdp_out$FarmWealth),y=parms$x_class[-1],z=sdp_out$OptimalStrategy,ylab="weight",xlab="time",zlim=c(0,4),
+# main="optimal patch",col=c("black","darkgrey","lightgrey","white"))
+# box()
+# legend("topleft",fill=c("black","darkgrey","lightgrey","white"),
+# legend=c("dead","1","2","3"))
+# contour(x=1:parms$t_max,y=x_class,z=sdp_out$FarmWealth,add=TRUE)
+# legend("topright",legend="fitness",lty=1)
 
+f1<-sdp_out$FarmWealth
+bestpatch <- sdp_out$OptimalStrategy
+par(mfrow=c(1,1))
+image(x=times,y=x_class[-
+1],z=bestpatch,ylab="farm size",xlab="time",zlim=c(0,3),
+main="optimal patch",col= topo.colors(5))
+box()
+legend("topleft",fill=topo.colors(5),
+legend=c("destitute","1","2","3", "4"))
+contour(x=1:parms$t_max,y=x_class,z=f1,add=TRUE)
+legend("topright",legend="fitness",lty=1)
 
+ 
 
 ```
 
@@ -237,23 +301,61 @@ setting up data structures
 
 
 ```{r set up for sdp2, echo=FALSE}
+library(sensitivity)
+# names of our parameters
+# number of parameters 
+
+np=100
+HSR = rnorm(mean=36,sd=12, n=np)
+max_S = runif(min=12,max=30, n=np)
+PrS = rnorm(mean=0.85, sd=0.17, n=np)
 
 
+# generate two examples of random number from parmeter distributions
+
+X1 = cbind.data.frame(HSR, max_S, PrS)
+
+# repeat sampling
+HSR = rnorm(mean=36,sd=12, n=np)
+max_S = runif(min=12,max=30, n=np)
+PrS = rnorm(mean=0.85, sd=0.17, n=np)
+
+X2 = cbind.data.frame(HSR, max_S, PrS)
+
+sens_sdp_sobel = sobol2007(model = NULL, X1, X2, nboot = 100)
 
 
+# run model for all parameter sets
+res = mapply(FUN=sdp_farm,  hsr=sens_sdp_sobel$X$HSR, max_store=sens_sdp_sobel$X$max_S, PrS=sens_sdp_sobel$X$PrS,  MoreArgs=list(f=f, s=s, times=times, parms=parms, crop.parms=crop.parms, stock.parms=stock.parms, x_class=x_class))
 
 
+sens_sdp_sobel = sensitivity::tell(sens_sdp_sobel,res, res.names="ga")
 
-# initialize matrices to store optimal crop and livestock strategies
-best.strategy= list(crops=matrix(nrow=parms$t_max-1,ncol=nmass-1 ,0) ,
-                    stock=matrix(nrow=parms$t_max-1,ncol=nmass-1 ,0))
+# first-order indices (main effect without co-variance)
+sens_Catm_sobel$S
 
-# initialize vectors for storing current fitness 
-Vs <- vector(length=parms$npatch) # current fitness
-Vc <- vector(length=parms$npatch) # current fitness
+# total sensitivity index -note that this partitions the output variance - so values sum to 1
+sens_Catm_sobel$T
 
-f[parms$t_max,] <- 36
-s[parms$t_max,] <- 20
+# The difference between the main effect and total effect can tell us something about how the parameter influences results
+# so in the main effect we include interactions with other parameters
+
+
+print(sens_Catm_sobel)
+plot(sens_Catm_sobel)
+
+# compare with LHS and PRCC
+sens_Catm$prcc
+
+
+sens_Catm_sobel$S
+sens_Catm_sobel$T
+
+# make a data frame for plotting
+both = cbind.data.frame(sens_Catm_sobel$X, gs=sens_Catm_sobel$y)
+
+# look at response of conductance to the two most important variables
+ggplot(both, aes(v,gs, col=height))+geom_point()+labs(y="Conductance (mm/s)", x="Windspeed")
 
 
 ```
@@ -261,22 +363,6 @@ s[parms$t_max,] <- 20
 Big build up
 
 ```{r deficit function, echo=FALSE}
-
-
-deficit.surplus <- function(hsr, gains, maxwealth, x, t){
-  # gains<- cropgains
-  # maxwealth=160
-  # hsr=36
-  xx <- pmin(gains, maxwealth)
-  d <- ifelse(xx-hsr>0, 0, xx-hsr)
-  # d.index <- which.max(d)
-  deficit <- d
-  s <- ifelse(d==0, xx-hsr, 0)
-  # s.index <- which.max(s)
-  surplus <- s
-  return(list(deficit=deficit, surplus=surplus))
-  # f[t-1,x+1] <- surplus+x+1
-}
 
 
 ```
@@ -303,7 +389,7 @@ deficit.surplus <- function(hsr, gains, maxwealth, x, t){
 ```{r}
 library(sensitivity)
 
-source("./R/evolve_pop_wofftake.R")
+source("./R/evolve_pop_wofftakeK.R")
 
 np=100
 

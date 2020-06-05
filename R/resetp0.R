@@ -13,7 +13,7 @@ reset.p0 <- function(Livestock.list, bestV, classes=9, even_odd=TRUE){
   for(i in 1:length(L)){
     p <- L[[i]]
     p.df <- as.data.frame(p)
-    p.df[,2] <- ifelse(a[,2]<0,0,p.df[,2]) # sets negative numbers to 0
+    p.df[,2] <- ifelse(p.df[,2]<0,0,p.df[,2]) # sets negative numbers to 0
     mnewpop[,i]<- p.df[,2]
   }
   if(even_odd==TRUE){

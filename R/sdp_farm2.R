@@ -9,15 +9,16 @@ source("./R/wheat_yield.R")
 source("./R/barley_yield.R")
 source("./R/nnfix.R")
 source("./R/resetp0.R")
-source("./R/goat_array.R")
+# source("./R/goat_array.R")
+source("./R/makevector.R")
 
 sdp_farm <- function(parms, crop.parms, stock.parms, hsr=36, max_store=20, PrS=0.85, PrGood=0.8, D.good=0.75, D.bad=0.85){
   PrBad = 1-PrGood
   with(as.list(c(crop.parms, stock.parms, parms)),{
     # set model parameters
-    times=seq(1:t_max-1)
+    times=seq(1:(t_max-1))
     x_class=x_crit:x_max
-    
+    nclass=x_max
     # initialize outputs
     f <- matrix(nrow=t_max,ncol=nclass ,0) # optimal fitness
     f[t_max,] <- hsr
@@ -26,7 +27,8 @@ sdp_farm <- function(parms, crop.parms, stock.parms, hsr=36, max_store=20, PrS=0
     best.strategy <- matrix(nrow=t_max-1,ncol=nclass-1,0) # best patch
     V <- vector(length = sum(ncrops,nstocks))
     # create array for storing goat population at each timestep for each wealth class
-    goat.pop=goat.array(times,x_class,agecats)
+    # goat.pop=goat.array(times,x_class,agecats)
+    goat.pop=goat.array(times,x_class,agecats[-1])
     # set final population size
     goat.pop[,t_max,1:9]=p0
     
@@ -76,7 +78,7 @@ sdp_farm <- function(parms, crop.parms, stock.parms, hsr=36, max_store=20, PrS=0
         #   p1[i] <- ifelse(p1[i]<0,0,p1[i])
         # }
         # record goat pop for current time step and wealth class
-        goat.pop[x,t-1,]=p1
+        goat.pop[x,(t-1),]=p1
         
       }
     }
