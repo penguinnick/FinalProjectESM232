@@ -111,23 +111,12 @@ goatsurv <- c(0.55, 0.90, 0.90, 0.95, 0.95, 0.90, 0.75, 0.50, 0.00)
 survivability <- goatsurv
 
 # initial population parameters
-# p0 = c(33, 21, 17, 15, 13, 12, 11, 7, 4)
-# sheepini = p0
-# initialpop = sheepini
 p0 = c(48, 23, 19, 15, 13, 12, 9, 6, 3)
 goatini=p0
 initialpop = goatini
 
-# offtake rate per 100 adult does at 50% use rate of animals to die
-# goatoff=list(goatoff50 = c(10.8, 1.1, 0.9, 0.3, 0.3, 0.6, 1.1, 1.5 , 1.5),  # at 50%
-     # goatoff75 = c(16.2, 1.7, 1.4, 0.5, 0.4, 0.9, 1.6, 2.2 , 2.2)) # at 75% use rate
-
-# offtake= lapply(goatoff, function(o){o/p0}) # create offtake rates as % of initial population
-
-offtakerate= c(0.50, 0.75)
 
 evolve_pop_wofftake(fertility = fertility, survivability = survivability,initialpop = p0, nstep = nyears, offtake = 0.75, K=220, minHerd = 140) 
-
 
 
 ```
@@ -135,16 +124,16 @@ evolve_pop_wofftake(fertility = fertility, survivability = survivability,initial
 
 
 ```{r plot livestock, echo=FALSE}
+# test two offtake rates
+offtakerate= c(0.50, 0.75)
 
 tmp<-lapply(offtakerate, function(o){tmp=evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = o, K=220, minHerd = 160); return(tmp)})
 
+# total offtake per year
 yrs=seq(1:(nyears-1))
 s=1:length(offtakerate)
-# total offtake per year
 tot.annual.offtake = sapply(s, function(s){sapply(yrs, function(y){sum(tmp[[s]]$offtakes[,y])})})
 tot.annual.offtake
-
-
 
 #-- compare population trends for both strategies 
 goat50=cbind.data.frame(year=seq(1:nyears), t(tmp[[1]]$popbyage))
@@ -234,6 +223,58 @@ compute.offtake.metrics(tmp)
 
 ```
 
+```{r Livestock sensitivity analysis}
+library(sensitivity)
+
+source("./R/evolve_pop_wofftakeK.R")
+
+evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = 0.50, K=220, minHerd = 160)
+np=100
+Off <- rnorm(mean = 0.5, sd=0.25, n=np)
+K <- rnorm(mean = 220, sd=60, n=np)
+minHerd <- rnorm(mean = 160, sd=30, n=np)
+X1 = cbind.data.frame(Off=Off, K=K, minHerd=minHerd)
+
+np=100
+Off <- rnorm(mean = 0.5, sd=0.25, n=np)
+K <- rnorm(mean = 220, sd=60, n=np)
+minHerd <- rnorm(mean = 160, sd=30, n=np)
+X2 = cbind.data.frame(Off=Off, K=K, minHerd=minHerd)
+
+# null model
+sens_P_livestock = sobol2007(model = NULL, X1,X2, nboot =300)
+
+# wrapper function to summarize average number of animals slaughtered per year
+avg.offtakes <- function(res){
+  alist <- res[3,]
+  annavgs=lapply(alist, function(a){ann.totals=mean(apply(a,2,FUN = sum))})
+  return(annavgs)
+}
+
+res = unlist(avg.offtakes(mapply(FUN = evolve_pop_wofftake, offtake=sens_P_livestock$X$Off, K=sens_P_livestock$X$K, minHerd=sens_P_livestock$X$minHerd, MoreArgs = list(fertility, survivability, p0, nstep=nyears)))) #; return(compute.offtake.metrics(tmp))})
+
+sens_P_livestock = sensitivity::tell(sens_P_livestock, unlist(res), res.names="avg.ann.offtake")
+
+sens_P_livestock$S
+sens_P_livestock$T
+
+print(sens_P_livestock)
+plot(sens_P_livestock, ylim = c(-3,4))
+
+# making a datafram for plotting
+both = cbind.data.frame(sens_P_livestock$X, results=sens_P_livestock$y)
+
+# look at response of conductance to the two most important variables
+ggplot(both, aes(Off,results, col=K))+geom_point()+labs(y="average animals slaughtered annually", x="offtake rate") + ggtitle("Results of sensitivity analysis of results of livestock submodel")
+
+# Looking at the response to the two most important variables
+ggplot(both, aes(minHerd, results, col = K)) +
+  geom_point() +
+  labs(x = "min herd size", y ="average animals slaughtered annually") +
+  theme_classic()
+
+```
+
 ## The Farmer's Choice Model
 
 A 50% use of naturally occuring herd deaths results in more animals available for offtake over a 50-year period. We'll use stochastic dynamic programming (sdp) to determine if 50% use rate is the optimal strategy when paired with variable cropping strategies
@@ -241,28 +282,13 @@ A 50% use of naturally occuring herd deaths results in more animals available fo
 Here we create lists containing the parameters for the sdp function. There are two state variables: wealth which is a measure of fitness, and age-structured goat herd population. At the start of each time step, a farmer decides whether to sow wheat (a drought sensitive crop) or barley (a drought resistant crop). The average yields are based on a poisson distribution, and is calculated as shown above. Depending on the yield, a cost to wealth is incurred reflecting seed, and is proportional to the yield. If the farmers wealth during the previous timestep is greater than the seed cost, the gains from planting either wheat or barley can be expected. The probability of obtaining any yield is based on a poisson distribution. 
 
 
-```{r set up for sdp, echo=FALSE}
+```{r sdp model, echo=FALSE}
 nyears=50
-# parms= list(x_crit=0, # critical mass to survive
-#             x_max=160, # maximal mass
-#             t_max=50, # number of time steps
-#             hsr=36,
-#             maxwealth=160,
-#             max_store=20) 
 
 parms= list(x_crit=0, # critical mass to survive
             x_max=160, # maximal mass
             t_max=50,
             maxwealth=160) # number of time steps) 
-
-
-# parms= list(x_crit=0, # critical mass to survive
-#             x_max=50, # maximal mass
-#             t_max=100, # number of time steps
-#             maxwealth=50) 
-
-
-# x_class=parms$x_crit:parms$x_max
 
 #-- stock and crop parms from above
 stock.parms= list(offtake=offtakerate, fertility=fertility, survivability=survivability, nstocks=2, initialpop=p0)
@@ -275,54 +301,62 @@ sdp_out=sdp_farm(parms = parms, crop.parms = crop.parms, stock.parms = stock.par
 
 f1<-sdp_out$FarmWealth
 bestpatch <- sdp_out$OptimalStrategy
-times=seq(1:parms$t_max)
-x_class=1:parms$x_max
 
+# show optimal strategy
+wealthclasses=0:ncol(sdp_out$FarmWealth[,-1])
+timesteps = 1:nrow(sdp_out$OptimalStrategy)
+
+# plot
 par(mfrow=c(1,1))
-image(x=times[-1],y=x_class[-1],z=bestpatch,ylab="farm size",xlab="time",zlim=c(0,4),
-main="optimal patch",col= topo.colors(5))
+image(x=timesteps,y=wealthclasses[-1],z=bestpatch,ylab="Wealth",xlab="Time",zlim=c(0,5),
+main="Best Strategy",col=topo.colors(5))
 box()
-legend("topleft",fill=topo.colors(5),
-legend=c("destitute","1","2","3", "4"))
-contour(x=1:parms$t_max,y=x_class,z=f1,add=TRUE)
-legend("topright",legend="fitness",lty=1)
+legend("topleft",fill=c("black","darkgrey","lightgrey","white"),
+legend=c("destitue","wheat & 50% use rate","wheat & 75% use rate","barley & 50% use rate", "barley & 75% use rate"))
+contour(x=1:parms$t_max,y=wealthclasses,z=f1,add=TRUE)
+legend("topright",legend="Wealth",lty=1)
 
 
 
 ```
 
-## more parameters
-
-setting up data structures
+## SDP Sensitivity analysis
 
 
 ```{r set up for sdp2, echo=FALSE}
 library(sensitivity)
+(parms, crop.parms, stock.parms,hsr=36,max_store=20,PrS=0.85,PrGood=0.8,D.good=0.75,D.bad=0.85)
 # names of our parameters
 # number of parameters 
 
 np=100
-HSR = rnorm(mean=36,sd=12, n=np)
-max_S = runif(min=12,max=30, n=np)
-PrS = rnorm(mean=0.85, sd=0.17, n=np)
-
+hsr = rnorm(mean=36,sd=12, n=np)
+max_store = runif(min=12,max=30, n=np)
+PrS = rnorm(mean=0.85, sd=0.30, n=np)
+PrGood = rnorm(mean=0.8, sd=0.25, n=np)
+D.good = rnorm(mean=0.75, sd=0.15, n=np)
+D.bad = rnorm(mean=0.85, sd=0.35, n=np)
+X1 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad)
 
 # generate two examples of random number from parmeter distributions
 
-X1 = cbind.data.frame(HSR, max_S, PrS)
-
 # repeat sampling
-HSR = rnorm(mean=36,sd=12, n=np)
-max_S = runif(min=12,max=30, n=np)
-PrS = rnorm(mean=0.85, sd=0.17, n=np)
-
-X2 = cbind.data.frame(HSR, max_S, PrS)
+np=100
+hsr = rnorm(mean=36,sd=12, n=np)
+max_store = runif(min=12,max=30, n=np)
+PrS = rnorm(mean=0.85, sd=0.30, n=np)
+PrGood = rnorm(mean=0.8, sd=0.25, n=np)
+D.good = rnorm(mean=0.75, sd=0.15, n=np)
+D.bad = rnorm(mean=0.85, sd=0.35, n=np)
+X2 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad)
 
 sens_sdp_sobel = sobol2007(model = NULL, X1, X2, nboot = 100)
 
+# wrapper function for summarizing sdp results
+
 
 # run model for all parameter sets
-res = mapply(FUN=sdp_farm,  hsr=sens_sdp_sobel$X$HSR, max_store=sens_sdp_sobel$X$max_S, PrS=sens_sdp_sobel$X$PrS,  MoreArgs=list(f=f, s=s, times=times, parms=parms, crop.parms=crop.parms, stock.parms=stock.parms, x_class=x_class))
+sdp_res = mapply(FUN=sdp_farm,  hsr=sens_sdp_sobel$X$hsr, max_store=sens_sdp_sobel$X$max_store, PrS=sens_sdp_sobel$X$PrS, PrGood=sens_sdp_sobel$X$PrGood, D.good=sens_sdp_sobel$X$D.good, D.bad=sens_sdp_sobel$X$D.bad, MoreArgs=list(parms=parms, crop.parms=crop.parms, stock.parms=stock.parms))
 
 
 sens_sdp_sobel = sensitivity::tell(sens_sdp_sobel,res, res.names="ga")
@@ -355,95 +389,6 @@ ggplot(both, aes(v,gs, col=height))+geom_point()+labs(y="Conductance (mm/s)", x=
 
 
 ```
-
-Big build up
-
-```{r deficit function, echo=FALSE}
-
-
-```
-
-
-```{r run the func}
-
-##-- sdpfunction.
-
-#Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-
-
-
-
-
-
-
-
-```
-
-##Sensitivity analysis
-goatfert =  c(0,0.150,0.410,0.550,0.705, 0.695, 0.725, 0.515,0.515)
-fertility = goatfert
-
-# survivability - based on mortality rates female sheep (Redding Table IV-7)
-goatsurv <- c(0.55, 0.90, 0.90, 0.95, 0.95, 0.90, 0.75, 0.50, 0.00)
-survivability <- goatsurv
-
-```{r}
-library(sensitivity)
-
-source("./R/evolve_pop_wofftakeK.R")
-tmp<-lapply(offtakerate, function(o){tmp=evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = o, K=220, minHerd = 160); return(tmp)})
-
-evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = o, K=220, minHerd = 160)
-np=100
-Off <- rnorm(mean = 0.5, sd=0.25, n=np)
-K <- rnorm(mean = 220, sd=60, n=np)
-minHerd <- rnorm(mean = 160, sd=30, n=np)
-
-X1 = cbind.data.frame(Off=Off, K=K, minHerd=minHerd)
-
-np=100
-Off <- rnorm(mean = 0.5, sd=0.25, n=np)
-K <- rnorm(mean = 220, sd=60, n=np)
-minHerd <- rnorm(mean = 160, sd=30, n=np)
-
-X2 = cbind.data.frame(Off=Off, K=K, minHerd=minHerd)
-
-
-sens_P_livestock = sobol2007(model = NULL, X1,X2, nboot =300)
-
-avg.offtakes <- function(res){
-  alist <- res[3,]
-  annavgs=lapply(alist, function(a){ann.totals=mean(apply(a,2,FUN = sum))})
-  return(annavgs)
-}
-
-res = unlist(avg.offtakes(mapply(FUN = evolve_pop_wofftake, offtake=sens_P_livestock$X$Off, K=sens_P_livestock$X$K, minHerd=sens_P_livestock$X$minHerd, MoreArgs = list(fertility, survivability, p0, nstep=nyears)))) #; return(compute.offtake.metrics(tmp))})
-
-sens_P_livestock = sensitivity::tell(sens_P_livestock, unlist(res), res.names="avg.ann.offtake")
-
-sens_P_livestock$S
-sens_P_livestock$T
-
-print(sens_P_livestock)
-plot(sens_P_livestock, ylim = c(-3,3))
-
-# making a datafram for plotting
-both = cbind.data.frame(sens_P_livestock$X, results=sens_P_livestock$y)
-
-# look at response of conductance to the two most important variables
-ggplot(both, aes(Off,results, col=K))+geom_point()+labs(y="average animals slaughtered annually", x="offtake rate") + ggtitle("Results of sensitivity analysis of results of livestock submodel")
-
-# Looking at the response to the two most important variables
-ggplot(both, aes(minHerd, results, col = K)) +
-  geom_point() +
-  labs(x = "min herd size", y ="average animals slaughtered annually") +
-  theme_classic()
-
-
-
-```
-
 ##References 
 Milner-Gulland, E.J., Mace, R., Scoones, I.1996."A Model of Household Deciscions in Dryland Agropastoral Systems".Agricultral Systems. 51:4, 407-430.
 

@@ -33,7 +33,7 @@ evolve_pop_wofftake = function(fertility, survivability, initialpop, nstep, offt
     # leslie_matrix[i,i] = offtake[i]
   }
   leslie_matrix[nclasses,nclasses] = survivability[nclasses]
-  # lm.offtake[nclasses,nclasses] = (1-survivability[nclasses])*offtake
+  lm.offtake[nclasses,nclasses] = (1-survivability[nclasses])*offtake
   # create an matrix to store population structure
   pop.structure = matrix(nrow=nclasses, ncol=nstep)
   offtake.str = matrix(nrow=nclasses, ncol=nstep)
