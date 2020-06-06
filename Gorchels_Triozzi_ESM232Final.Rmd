@@ -116,9 +116,9 @@ goatini=p0
 initialpop = goatini
 
 
-evolve_pop_wofftake(fertility = fertility, survivability = survivability,initialpop = p0, nstep = nyears, offtake = 0.75, K=220, minHerd = 140) 
+tmp<-evolve_pop_wofftake(fertility = fertility, survivability = survivability,initialpop = p0, nstep = nyears, offtake = 0.75, K=220, minHerd = 140) 
 
-
+str(tmp)
 ```
 
 
@@ -127,7 +127,7 @@ evolve_pop_wofftake(fertility = fertility, survivability = survivability,initial
 # test two offtake rates
 offtakerate= c(0.50, 0.75)
 
-tmp<-lapply(offtakerate, function(o){tmp=evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = o, K=220, minHerd = 160); return(tmp)})
+tmp<-lapply(offtakerate, function(o){tmp=evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = o, extrinsicP = 0.97, K=320, minHerd = sum(p0)); return(tmp)})
 
 # total offtake per year
 yrs=seq(1:(nyears-1))
@@ -286,15 +286,15 @@ Here we create lists containing the parameters for the sdp function. There are t
 nyears=50
 
 parms= list(x_crit=0, # critical mass to survive
-            x_max=160, # maximal mass
+            x_max=75, # maximal mass
             t_max=50,
-            maxwealth=160) # number of time steps) 
+            maxwealth=75) # number of time steps) 
 
 #-- stock and crop parms from above
 stock.parms= list(offtake=offtakerate, fertility=fertility, survivability=survivability, nstocks=2, initialpop=p0)
 crop.parms=list(wheatY=wheat, barleyY=barley, wl=67, bl=74, ncrops=2)
 
-source("./R/sdp_farm_v3.R")
+# source("./R/sdp_farm123.R")
 # run function    
 sdp_out=sdp_farm(parms = parms, crop.parms = crop.parms, stock.parms = stock.parms)
 
@@ -307,14 +307,13 @@ wealthclasses=0:ncol(sdp_out$FarmWealth[,-1])
 timesteps = 1:nrow(sdp_out$OptimalStrategy)
 
 # plot
+
 par(mfrow=c(1,1))
-image(x=timesteps,y=wealthclasses[-1],z=bestpatch,ylab="Wealth",xlab="Time",zlim=c(0,5),
-main="Best Strategy",col=topo.colors(5))
-box()
-legend("topleft",fill=c("black","darkgrey","lightgrey","white"),
-legend=c("destitue","wheat & 50% use rate","wheat & 75% use rate","barley & 50% use rate", "barley & 75% use rate"))
-contour(x=1:parms$t_max,y=wealthclasses,z=f1,add=TRUE)
-legend("topright",legend="Wealth",lty=1)
+image(x=timesteps,y=wealthclasses[-1],z=bestpatch,ylab="Wealth",xlab="Time",zlim=c(0,5), main="Best Strategy",col=c("black",topo.colors(4))) 
+box() 
+# legend("topleft",fill=c("black",topo.colors(4)), legend=c("destitue","wheat & 50% use rate","wheat & 75% use rate","barley & 50% use rate", "barley & 75% use rate")) 
+contour(x=1:parms$t_max,y=wealthclasses,z=f1,add=TRUE) 
+# legend("topright",legend="Wealth",lty=1)
 
 
 
