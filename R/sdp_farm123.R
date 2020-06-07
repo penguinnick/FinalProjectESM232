@@ -3,7 +3,7 @@
 #' @cropparms a list summarizing yield per hectare for crops considered
 #' @stockparms a list containing arguments passed to evolve_pop_wofftake.R
 #' @return a list containing wealth, surplus, age-structured goat population and strategy choice for each timestep for each wealth class
-source("./R/sdp_farm_v3.R")
+# source("./R/sdp_farm_v3.R")
 source("./R/wealth.R")
 source("./R/wheat_yield.R")
 source("./R/barley_yield.R")

@@ -97,8 +97,8 @@ We're only interested in herd growth during one time step, and input parameters,
 
 ```{r livestock, echo=FALSE}
 
-source("./R/evolve_pop_wofftakeK.R")
-
+# source("./R/evolve_pop_wofftakeK.R")
+source("./R/evolve_pop_wofftakeK_play.R")
 nyears=50
 nyears=nyears
 # assign values for fertility for each of the age classes 
@@ -126,8 +126,10 @@ str(tmp)
 ```{r plot livestock, echo=FALSE}
 # test two offtake rates
 offtakerate= c(0.50, 0.75)
+K=320
+minHerd=sum(p0)
 
-tmp<-lapply(offtakerate, function(o){tmp=evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = o, extrinsicP = 0.97, K=320, minHerd = sum(p0)); return(tmp)})
+tmp<-lapply(offtakerate, function(o){tmp=evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = o, extrinsicP = 0.97, K=K, minHerd =minHerd); return(tmp)})
 
 # total offtake per year
 yrs=seq(1:(nyears-1))
@@ -149,11 +151,13 @@ goat75_agesl= goat75 %>% gather(key="agecat", value="pop",-year)
 # plots
 ggplot(goat50_agesl, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population", fill="Age Group")+
   theme_classic()+
-  scale_y_continuous(expand = c(0,0))
+  scale_y_continuous(expand = c(0,0))+
+  ggtitle(paste0("Herd size by age at 50% use rate with K=",K," and min herd=",minHerd))
 
 ggplot(goat75_agesl, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population", fill="Age Group")+
   theme_classic()+
-  scale_y_continuous(expand = c(0,0))
+  scale_y_continuous(expand = c(0,0))+
+  ggtitle(paste0("Herd size by age at 75% use rate with K=",K," and min herd=",minHerd))
 ```
 #-- compare offtake trends for both strategies 
 ```{r}
@@ -172,12 +176,15 @@ ggplot(goat50_agesl_off, aes(year, slaughtered, fill=agecat))+
   geom_col()+
   labs(y="Animals available for slaughter", fill="Age Group")+
   theme_classic()+
-  scale_y_continuous(expand = c(0,0))
+  scale_y_continuous(expand = c(0,0))+
+  ggtitle(paste0("Slaughter by age at 50% use rate with K=",K," and min herd=",minHerd))
+
 
 ggplot(goat75_agesl_off, aes(year, slaughtered, fill=agecat))+
   geom_col()+labs(y="Animals available for slaughter", fill="Age Group")+
   theme_classic()+
-  scale_y_continuous(expand = c(0,0))
+  scale_y_continuous(expand = c(0,0))+
+  ggtitle(paste0("Slaughter by age at 75% use rate with K=",K," and min herd=",minHerd))
 
 ```
 
@@ -192,7 +199,7 @@ colnames(ot.df) <- c("g50", "g75")
 ot.yr <- ot.df%>% gather(key="userate", value="annual.total")
 
 ggplot(ot.yr, aes(userate, annual.total)) + geom_boxplot() + 
-  labs(title ="Total offtakes per year for each strategy", subtitle = "Carrying Capacity=200, Min herd size=160")
+  labs(title ="Total offtakes per year for each strategy", subtitle =paste0("K=",K," and min herd=",minHerd))
 ```
 
 ## A 50% use of naturally occuring herd deaths results in more animals available for offtake over a 50-year period
@@ -202,7 +209,7 @@ ggplot(ot.yr, aes(userate, annual.total)) + geom_boxplot() +
 newstock <- data.frame(g50=tmp[[1]]$newstock, g75=tmp[[2]]$newstock)
 head(newstock)
 newstock <- newstock[-1,]%>% gather(key="newstock", value="count")
-ggplot(newstock, aes(newstock, count)) + geom_boxplot() + ggtitle("Annual Births for each strategy")
+ggplot(newstock, aes(newstock, count)) + geom_boxplot() + ggtitle("Annual Births for each strategy", subtitle =paste0("K=",K," and min herd=",minHerd))
 
 
 
@@ -226,20 +233,22 @@ compute.offtake.metrics(tmp)
 ```{r Livestock sensitivity analysis}
 library(sensitivity)
 
-source("./R/evolve_pop_wofftakeK.R")
+source("./R/evolve_pop_wofftakeK_play.R")
 
-evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = 0.50, K=220, minHerd = 160)
+evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = 0.50, K=220, minHerd = 160, extrinsicP = 0.97)
 np=100
 Off <- rnorm(mean = 0.5, sd=0.25, n=np)
 K <- rnorm(mean = 220, sd=60, n=np)
 minHerd <- rnorm(mean = 160, sd=30, n=np)
-X1 = cbind.data.frame(Off=Off, K=K, minHerd=minHerd)
+extrinsicP<-rnorm(mean = 0.95, sd=0.05, n=np)
+X1 = cbind.data.frame(Off=Off, K=K, minHerd=minHerd, extrinsicP=extrinsicP)
 
 np=100
 Off <- rnorm(mean = 0.5, sd=0.25, n=np)
 K <- rnorm(mean = 220, sd=60, n=np)
 minHerd <- rnorm(mean = 160, sd=30, n=np)
-X2 = cbind.data.frame(Off=Off, K=K, minHerd=minHerd)
+extrinsicP<-rnorm(mean = 0.95, sd=0.05, n=np)
+X2 = cbind.data.frame(Off=Off, K=K, minHerd=minHerd,  extrinsicP=extrinsicP)
 
 # null model
 sens_P_livestock = sobol2007(model = NULL, X1,X2, nboot =300)
@@ -251,7 +260,7 @@ avg.offtakes <- function(res){
   return(annavgs)
 }
 
-res = unlist(avg.offtakes(mapply(FUN = evolve_pop_wofftake, offtake=sens_P_livestock$X$Off, K=sens_P_livestock$X$K, minHerd=sens_P_livestock$X$minHerd, MoreArgs = list(fertility, survivability, p0, nstep=nyears)))) #; return(compute.offtake.metrics(tmp))})
+res = unlist(avg.offtakes(mapply(FUN = evolve_pop_wofftake, offtake=sens_P_livestock$X$Off, K=sens_P_livestock$X$K, minHerd=sens_P_livestock$X$minHerd, extrinsicP=sens_P_livestock$X$extrinsicP, MoreArgs = list(fertility, survivability, p0, nstep=nyears)))) #; return(compute.offtake.metrics(tmp))})
 
 sens_P_livestock = sensitivity::tell(sens_P_livestock, unlist(res), res.names="avg.ann.offtake")
 
@@ -290,11 +299,11 @@ parms= list(x_crit=0, # critical mass to survive
             t_max=50,
             maxwealth=75) # number of time steps) 
 
-
-parms= list(x_crit=0, # critical mass to survive
-            x_max=15, # maximal mass
-            t_max=30,
-            maxwealth=15) # number of time steps) 
+# 
+# parms= list(x_crit=0, # critical mass to survive
+#             x_max=15, # maximal mass
+#             t_max=30,
+#             maxwealth=15) # number of time steps) 
 #-- stock and crop parms from above
 stock.parms= list(offtake=offtakerate, fertility=fertility, survivability=survivability, nstocks=2, initialpop=p0)
 crop.parms=list(wheatY=wheat, barleyY=barley, wl=67, bl=74, ncrops=2)
@@ -304,41 +313,38 @@ crop.parms=list(wheatY=wheat, barleyY=barley, wl=67, bl=74, ncrops=2)
 # run function    
 sdp.out=sdp_farm(parms = parms, crop.parms = crop.parms, stock.parms = stock.parms)
 
-sdp_df=function(sdp.out,crop.parms = crop.parms, stock.parms=stock.parms){
-  fw<- sdp.out$FarmWealth
-  bp<- sdp.out$OptimalStrategy
-  gp<- sdp.out$GoatPop
-  # a=apply(gp, c(3,1), matrix)
-  # b=sapply(1:75, function(s){sapply(1:nyears, function(n){sum(a[n,,s])})})
-  # mean.herd<- apply(b, 1, mean)
+sdp_df=function(sdp.out,wheat.yld=crop.parms$wheatY$mean_yield,barley.yld=crop.parms$barleyY$mean_yield){
   
-  farm.yrly<- data.frame(year=1:nyears, 
-                         avg.wealth=apply(fw,1 ,mean), 
-                         sd.wealth=apply(fw,1 ,sd),
-                         wheat.yld=crop.parms$wheatY$mean_yield,
-                         barley.yld=crop.parms$barleyY$mean_yield)
-                         # mean.herd=mean.herd[-50]) 
-  return(farm.yrly)
+  year=1:nrow(sdp.out$FarmWealth) 
+  avg.wealth=apply(sdp.out$FarmWealth,1 ,mean)
+  sd.wealth=apply(sdp.out$FarmWealth,1 ,sd)
+  wheat.yld=wheat.yld#crop.parms$wheatY$mean_yield
+  barley.yld=barley.yld#crop.parms$barleyY$mean_yield
+  gp<-t(apply(sdp.out$GoatPop, c(1,2), sum))
+  mean.herd=apply(gp,1,mean)
+  
+  df=data.frame(year=year,avg.wealth=avg.wealth, sd.wealth=sd.wealth, wheat.yld=wheat.yld, barley.yld=barley.yld, mean.herd=mean.herd)
+  return(df)
 }
 
 # as a dataframe
-farm.yrly=sdp_df(sdp.out)
-head(farm.yrly)
-# crops <- gather(farm.yrly[-50,c(4,5)],value = "yield", key = "crop")
+farm.df=sdp_df(sdp.out)
+head(farm.df)
 
-gg1<-ggplot(farm.yrly[-50,], aes(x=year,y=avg.wealth))+geom_line() 
+gg1<-ggplot(farm.df[-50,], aes(x=year,y=avg.wealth))+geom_line() 
 gg1 + geom_point(aes(y=wheat.yld), color="red") +
   geom_point(aes(y=barley.yld), color="blue") 
 
 compute.metrics= function(df){
   df=df[-50,]
     
-  return(list(mean.wealth=mean(df$avg.wealth),
-              variance=var(df$avg.wealth),
+  return(list(mean.wealth=mean(df$avg.wealth, na.rm = T),
+              variance=var(df$avg.wealth, na.rm = T),
               cor.wheat=cor(df$wheat.yld, df$avg.wealth),
-              cor.barley=cor(df$barley.yld, df$avg.wealth)))
+              cor.barley=cor(df$barley.yld, df$avg.wealth),
+              cor.herd= cor(df$mean.herd, df$avg.wealth) ))
 }
-compute.metrics(farm.yrly)              
+compute.metrics(farm.df)              
 
 
 ```
