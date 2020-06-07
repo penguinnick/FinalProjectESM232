@@ -119,7 +119,7 @@ bl=mean.ylds[2]
         
       }
     }
-    return(list(FarmWealth=f, Surplus=s, OptimalStrategy=best.strategy, GoatPop=goat.pop))
+    return(list(FarmWealth=f, Surplus=s, OptimalStrategy=best.strategy, GoatPop=goat.pop, nyears=t_max, wheat.yld=wheatY[,2], barley.yld=barleyY[,2]))
     # return(list(FarmWealth=f, Surplus=s, OptimalStrategy=best.strategy, goatpop=gp))
   }) 
 }
