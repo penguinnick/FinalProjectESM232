@@ -12,8 +12,10 @@ source("./R/resetp0.R")
 source("./R/goat_array.R")
 source("./R/makevector.R")
 
-sdp_farm <- function(parms, crop.parms, stock.parms,hsr=36,max_store=20,PrS=0.85,PrGood=0.8,D.good=0.75,D.bad=0.85){
-PrBad = 1-PrGood
+sdp_farm <- function(parms, crop.parms, stock.parms,mean.ylds=c(67,74), hsr=36,max_store=20,PrS=0.85,PrGood=0.8,D.good=0.75,D.bad=0.85){
+wl=mean.ylds[1]
+bl=mean.ylds[2]
+  PrBad = 1-PrGood
 # t_max=parms$t_max
 # ncrops=2
 # p0=stock.parms$initialpop
@@ -37,7 +39,7 @@ PrBad = 1-PrGood
     f <- matrix(nrow=parms$t_max,ncol=nclass ,0) # optimal fitness
     f[parms$t_max,] <- hsr
     s <- matrix(nrow=parms$t_max,ncol=nclass ,0) # surplus
-    s[parms$t_max,] <- max_store
+    # s[parms$t_max,] <- 
     best.strategy <- matrix(nrow=t_max-1,ncol=nclass-1,0) # best patch
     gp <- matrix(nrow=parms$t_max,ncol=nclass ,0) # surplus
     V <- vector(length = sum(crop.parms$ncrops,stock.parms$nstocks))
@@ -92,12 +94,17 @@ PrBad = 1-PrGood
         # use surplus, if necessary
         bestV = ifelse(bestV-hsr<0, bestV+s[t-1,x]*0.95, bestV) # if max gains do not meet hsr, add last year's surplus, minus a 5% decay rate
         bestV <- ifelse(bestV-hsr<0, 0, bestV-hsr) # if added surplus still doesnt meet hsr, then the household is destitute
-        f[t,x-x_crit+1] <- bestV # record household wealth for year t
-        f[t,x-x_crit+1] <- ifelse(f[t,x-x_crit+1]>maxwealth, maxwealth,f[t,x-x_crit+1])
-        s[t,x] = ifelse(bestV+hsr>hsr, bestV-hsr+s[t-1,x]*0.95, s[t-1,x]*0.95) # if added surplus helped meet hsr, store whatever is left over from this year and last year minus a 5% decay rate. Otherwise, carry over last year's surplus minus a 5% decay rate otherwise
+        # f[t,x-x_crit+1] <- bestV # record household wealth for year t
+        f[t,x] <- bestV # record household wealth for year t
+        # f[t,x-x_crit+1] <- ifelse(f[t,x-x_crit+1]>maxwealth, maxwealth,f[t,x-x_crit+1])
+        f[t,x] <- ifelse(f[t,x]>maxwealth, maxwealth,f[t,x])
+        s[t,x] = ifelse(bestV+hsr>hsr, (bestV-hsr)+(s[t-1,x]*0.95), s[t-1,x]*0.95) # if added surplus helped meet hsr, store whatever is left over from this year and last year minus a 5% decay rate. Otherwise, carry over last year's surplus minus a 5% decay rate otherwise
         s[t,x] <- ifelse(s[t,x]>max_store, max_store, s[t,x]) # if surplus is maxed out, set to max, otherwise keep the value
         s[t,x] <- ifelse(s[t,x]<0, 0, s[t,x]) # if surplus is in the red, set to 0, otherwise keep the value
         
+        if(isTRUE(f[t,x]==0)){
+          f[t:t_max,x]<-0
+          }
         # reset goat herd size
         poplist<-list(a=L[[1]]$popbyage[,2], b=L[[2]]$popbyage[,2])
         p1=reset.p0(Livestock.list = poplist, bestV = best)
@@ -112,7 +119,7 @@ PrBad = 1-PrGood
         
       }
     }
-    return(list(FarmWealth=f, Surplus=s, OptimalStrategy=best.strategy, goatpop=goat.pop))
+    return(list(FarmWealth=f, Surplus=s, OptimalStrategy=best.strategy, GoatPop=goat.pop))
     # return(list(FarmWealth=f, Surplus=s, OptimalStrategy=best.strategy, goatpop=gp))
   }) 
 }
