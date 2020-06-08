@@ -18,7 +18,7 @@ library(tidyverse)
 Agricultural yields have great variation in the same crop by year, location, and farming strategies This makes greating a general yield function for a specific crop challenging. To address this, we have followed a similar approach to Gulland et al. 1996 by making our agricultural modeling component adaptable. This model uses an input dataframe with at least 30 years of yield data. This can either be specific data for the farm studied or averages in the area of interest. Like Gulland et al. 1996, our function uses a normal distribution to account for the variation and gives a simulated yield for each time step based on the presented data. 
 
 #Example wheat data
-```{r crops }
+```{r crops, echo=FALSE, warning=FALSE, message=FALSE}
 source("./R/wheat_yield.R")
 
 source("./R/barley_yield.R")
@@ -45,7 +45,7 @@ ggplot(wheat_input)+
 ```
 
 # Wheat Results 
-```{r}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 
 years = seq(from=1, to=100, by=1)
 yield_res= sapply(years, wheat_yield, yields = wheat_input)
@@ -64,7 +64,7 @@ ggplot(yield_den)+
 
 #Barley Results 
 
-```{r}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 source("./R/barley_yield.R")
 
 example_yields=read_csv("example_yield.csv")
@@ -95,7 +95,7 @@ ggplot(yield_den_b)+
 
 We're only interested in herd growth during one time step, and input parameters, especially fertility and survivability might be modified depending on the goals of the farmer. Here, we've modified the function evolve_pop to account for additional herd reductions from slaughter. Two offtake rates are considered: 50% and 75% use rates for exploiting natural deaths for caloric gain. These figures variably affect different age categories each with its own fertility rate. Offtake for slaughter may have down-the-line consequences for herd size. 
 
-```{r livestock, echo=FALSE}
+```{r livestock, echo=FALSE, warning=FALSE, message=FALSE}
 
 # source("./R/evolve_pop_wofftakeK.R")
 source("./R/evolve_pop_wofftakeK_play.R")
@@ -123,7 +123,7 @@ str(tmp)
 
 
 
-```{r plot livestock, echo=FALSE}
+```{r plot livestock, echo=FALSE, warning=FALSE, message=FALSE}
 # test two offtake rates
 offtakerate= c(0.50, 0.75)
 K=320
@@ -159,8 +159,10 @@ ggplot(goat75_agesl, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population"
   scale_y_continuous(expand = c(0,0))+
   ggtitle(paste0("Herd size by age at 75% use rate with K=",K," and min herd=",minHerd))
 ```
+
 #-- compare offtake trends for both strategies 
-```{r}
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 #-- compare offtake trends for both strategies 
 goat50off=cbind.data.frame(year=seq(2:nyears), t(tmp[[1]]$offtakes))
 goat75off=cbind.data.frame(year=seq(2:nyears), t(tmp[[2]]$offtakes))
@@ -189,7 +191,7 @@ ggplot(goat75_agesl_off, aes(year, slaughtered, fill=agecat))+
 ```
 
 ## over the 50 year period, which strategy obtains more meat?
-```{r }
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 #-- over the 50 year period, which strategy obtains more meat?
 s <- c(1,2)
 y <- seq(1:ncol(tmp[[1]]$offtakes))
@@ -204,7 +206,7 @@ ggplot(ot.yr, aes(userate, annual.total)) + geom_boxplot() +
 
 ## A 50% use of naturally occuring herd deaths results in more animals available for offtake over a 50-year period
 
-```{r }
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 #-- A 50% use of naturally occuring herd deaths results in more animals available for offtake over a 50-year period
 newstock <- data.frame(g50=tmp[[1]]$newstock, g75=tmp[[2]]$newstock)
 head(newstock)
@@ -217,7 +219,7 @@ ggplot(newstock, aes(newstock, count)) + geom_boxplot() + ggtitle("Annual Births
 
 
 
-```{r sensitivity livestock}
+```{r sensitivity livestock, echo=FALSE, warning=FALSE, message=FALSE}
 compute.offtake.metrics <- function(res){
   s=1:length(res)
   yrs=1:ncol(res[[1]]$offtakes)
@@ -230,7 +232,7 @@ compute.offtake.metrics(tmp)
 
 ```
 
-```{r Livestock sensitivity analysis}
+```{r Livestock sensitivity analysis, echo=FALSE, warning=FALSE, message=FALSE}
 library(sensitivity)
 
 # source("./R/evolve_pop_wofftakeK_play.R")
@@ -291,7 +293,7 @@ A 50% use of naturally occuring herd deaths results in more animals available fo
 Here we create lists containing the parameters for the sdp function. There are two state variables: wealth which is a measure of fitness, and age-structured goat herd population. At the start of each time step, a farmer decides whether to sow wheat (a drought sensitive crop) or barley (a drought resistant crop). The average yields are based on a poisson distribution, and is calculated as shown above. Depending on the yield, a cost to wealth is incurred reflecting seed, and is proportional to the yield. If the farmers wealth during the previous timestep is greater than the seed cost, the gains from planting either wheat or barley can be expected. The probability of obtaining any yield is based on a poisson distribution. 
 
 
-```{r sdp model, echo=FALSE}
+```{r sdp model, echo=FALSE, warning=FALSE, message=FALSE}
 nyears=50
 
 parms= list(x_crit=0, # critical mass to survive
@@ -315,7 +317,7 @@ sdp.out=sdp_farm(parms = parms, crop.parms = crop.parms, stock.parms = stock.par
 ```
 
 
-```{r summarize sdp res}
+```{r summarize sdp res, echo=FALSE, warning=FALSE, message=FALSE}
 source("./R/sdp_df.R")
 
 # as a dataframe
@@ -333,7 +335,7 @@ compute.wealth.metrics(farm.df, mean.only=FALSE)
 ```
 
 
-```{r }
+```{r, include=FALSE}
 # plot
 plot.wealth <- function(sdp.out, farm.yrly){
   f1<-sdp.out$FarmWealth
@@ -355,7 +357,7 @@ plot.wealth <- function(sdp.out, farm.yrly){
   contour(x=t[-1],y=w,z=f1,add=TRUE)
   abline(h = mean(farm.yrly$avg.wealth), col="red", lwd=3, lty=2)
 }
-plot.wealth(sdp.out, farm.yrly)
+#plot.wealth(sdp.out, farm.yrly)
 ```
 
 
@@ -364,14 +366,14 @@ plot.wealth(sdp.out, farm.yrly)
 ## that's a noisy graph. 
 We try again byt change a few parameters.
 
-```{r changing params}
+```{r changing params, echo=FALSE, warning=FALSE, message=FALSE}
 crop.parms=list(wheatY=wheat, barleyY=barley, ncrops=2)
 sdp.out=sdp_farm(parms = parms, crop.parms = crop.parms, mean.ylds = c(58,58), stock.parms = stock.parms, hsr = 8)
 
 
 
 # show optimal strategy
-plot.wealth(sdp.out, farm.yrly)
+#plot.wealth(sdp.out, farm.yrly)
 
 # as a dataframe
 farm.df=sdp_df(sdp.out)#, nyears = sdp.out[[5]])
@@ -387,7 +389,7 @@ gg1 + geom_point(aes(y=wheat.yld), color="red") +
 ## SDP Sensitivity analysis
 
 
-```{r summarizing sdp res}
+```{r summarizing sdp res, include=FALSE}
 library(sensitivity)
 # (parms, crop.parms, stock.parms,hsr=36,max_store=20,PrS=0.85,PrGood=0.8,D.good=0.75,D.bad=0.85)
 # names of our parameters
@@ -453,6 +455,8 @@ ggplot(both, aes(hsr,av.w, col=PrS))+geom_point()+labs(y="Average Wealth", x="HS
 
 
 ```
+
+
 ##References 
 Milner-Gulland, E.J., Mace, R., Scoones, I.1996."A Model of Household Deciscions in Dryland Agropastoral Systems".Agricultral Systems. 51:4, 407-430.
 
