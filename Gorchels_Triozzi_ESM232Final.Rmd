@@ -394,7 +394,6 @@ compute.metrics= function(df){
 
 This graph shows the wheat yield in red, the barley yield in blue and the average wealth with the black line. This deciion model shows destitution can occur with only slight variation in crop yields. 
 
-
 ```{r, echo=FALSE}
 compute.metrics(farm.df)    
 
@@ -518,7 +517,8 @@ sdp.out=sdp_farm(parms = parms, crop.parms = crop.parms, mean.ylds = c(58,58), s
 
 ##Conclusions
 
-Our findings match real world subsistance farming patterns, showing much variability due to the variation in yields. However, there were some useful takeaways. First, while offtaking animals at the 75% rate can generate more meat in a given year, offtaking animals at 50% leads to overall more meat on a longer time scale. 
+Our findings match real world subsistance farming patterns, showing much variability due to the variation in yields. However, there were some useful takeaways. First, while offtaking animals at the 75% rate can generate more meat in a given year, offtaking animals at 50% leads to overall more meat on a longer time scale. Sensitivity analysis on the livestock function shows no significant differences between parameters, but visualizaion indicates there could be a stronger relationship between offtake rates and average annual meat consumption. 
+
 
 
 ##References 
