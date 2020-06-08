@@ -1,13 +1,15 @@
 ---
-title: "Gorchels_Triozzi_ESM232_final"
-author: "Nick Triozzi"
-date: "5/26/2020"
+title: "ESM 232 Final Project"
+author: "Nick Triozzi and Madeline Gorchels"
+date: "6/8/2020"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(sensitivity)
+library(knitr)
 # load functions
 
 
@@ -34,7 +36,7 @@ wheat_input = example_yields %>%
   select(year,yield_wheat) %>% 
   rename(mean_yield=yield_wheat)
 
-wheat_yield(yields = wheat_input)
+#wheat_yield(yields = wheat_input)
 
 ggplot(wheat_input)+
   geom_histogram(aes(x=mean_yield), fill="burlywood3", binwidth = 0.25)+
@@ -45,6 +47,10 @@ ggplot(wheat_input)+
 ```
 
 # Wheat Results 
+
+To test the function, the wheat function was run for a period of 100 years. This is an example distribution from the function, the individual input will vary once a part of the larger decision model. 
+
+
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 
 years = seq(from=1, to=100, by=1)
@@ -64,6 +70,9 @@ ggplot(yield_den)+
 
 #Barley Results 
 
+To test the function, the barely function was run for a period of 100 years. This is an example distribution from the function, the individual input will vary once a part of the larger decision model. 
+
+
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 source("./R/barley_yield.R")
 
@@ -73,7 +82,7 @@ barley_input = example_yields %>%
   select(year,yield_barley) %>% 
   rename(mean_yield=yield_barley)
 
-barley_yield(yields = barley_input)
+#barley_yield(yields = barley_input)
 
 
 yield_res_b= sapply(years, barley_yield, yields = barley_input)
@@ -118,7 +127,7 @@ initialpop = goatini
 
 tmp<-evolve_pop_wofftake(fertility = fertility, survivability = survivability,initialpop = p0, nstep = nyears, offtake = 0.75, K=220, minHerd = 140) 
 
-str(tmp)
+#str(tmp)
 ```
 
 
@@ -135,7 +144,7 @@ tmp<-lapply(offtakerate, function(o){tmp=evolve_pop_wofftake(fertility, survivab
 yrs=seq(1:(nyears-1))
 s=1:length(offtakerate)
 tot.annual.offtake = sapply(s, function(s){sapply(yrs, function(y){sum(tmp[[s]]$offtakes[,y])})})
-tot.annual.offtake
+#tot.annual.offtake
 
 #-- compare population trends for both strategies 
 goat50=cbind.data.frame(year=seq(1:nyears), t(tmp[[1]]$popbyage))
@@ -160,7 +169,10 @@ ggplot(goat75_agesl, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population"
   ggtitle(paste0("Herd size by age at 75% use rate with K=",K," and min herd=",minHerd))
 ```
 
-#-- compare offtake trends for both strategies 
+## Offtake trends for both strategies 
+
+Depending on the strategy, there may be long term offtake trends. These will lead to different availabilities of meat over time. 
+
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 #-- compare offtake trends for both strategies 
@@ -190,7 +202,11 @@ ggplot(goat75_agesl_off, aes(year, slaughtered, fill=agecat))+
 
 ```
 
-## over the 50 year period, which strategy obtains more meat?
+## Over the 50 year period, which strategy obtains more meat?
+
+First the annual total of animals consumed shows that in general, the 75 offtake strategy has more animals consumed typically in a single year. 
+
+
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 #-- over the 50 year period, which strategy obtains more meat?
 s <- c(1,2)
@@ -201,17 +217,25 @@ colnames(ot.df) <- c("g50", "g75")
 ot.yr <- ot.df%>% gather(key="userate", value="annual.total")
 
 ggplot(ot.yr, aes(userate, annual.total)) + geom_boxplot() + 
-  labs(title ="Total offtakes per year for each strategy", subtitle =paste0("K=",K," and min herd=",minHerd))
+  labs(title ="Total offtakes per year for each strategy", subtitle =paste0("K=",K," and min herd=",minHerd))+
+  theme_classic()+
+  xlab("Use Rate")+
+  ylab("Annual Total")
 ```
 
 ## A 50% use of naturally occuring herd deaths results in more animals available for offtake over a 50-year period
 
+Over a 50 year period the previous trend reverses, leading to more meat overall with the 50% offtake strategy. 
+
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 #-- A 50% use of naturally occuring herd deaths results in more animals available for offtake over a 50-year period
 newstock <- data.frame(g50=tmp[[1]]$newstock, g75=tmp[[2]]$newstock)
-head(newstock)
+#head(newstock)
 newstock <- newstock[-1,]%>% gather(key="newstock", value="count")
-ggplot(newstock, aes(newstock, count)) + geom_boxplot() + ggtitle("Annual Births for each strategy", subtitle =paste0("K=",K," and min herd=",minHerd))
+ggplot(newstock, aes(newstock, count)) + geom_boxplot() + ggtitle("Annual Births for each strategy", subtitle =paste0("K=",K," and min herd=",minHerd))+
+  theme_classic()+
+  ylab("Count")+
+  xlab("New Stock")
 
 
 
@@ -219,7 +243,7 @@ ggplot(newstock, aes(newstock, count)) + geom_boxplot() + ggtitle("Annual Births
 
 
 
-```{r sensitivity livestock, echo=FALSE, warning=FALSE, message=FALSE}
+```{r sensitivity livestock, include=FALSE}
 compute.offtake.metrics <- function(res){
   s=1:length(res)
   yrs=1:ncol(res[[1]]$offtakes)
@@ -232,12 +256,13 @@ compute.offtake.metrics(tmp)
 
 ```
 
-```{r Livestock sensitivity analysis, echo=FALSE, warning=FALSE, message=FALSE}
-library(sensitivity)
+```{r Livestock sensitivity analysis, include=FALSE}
 
 source("./R/evolve_pop_wofftakeK_play.R")
 
 evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = 0.50, K=220, minHerd = 160, extrinsicP = 0.97)
+
+
 np=100
 Off <- rnorm(mean = 0.5, sd=0.25, n=np)
 K <- rnorm(mean = 220, sd=60, n=np)
@@ -266,22 +291,32 @@ res = unlist(avg.offtakes(mapply(FUN = evolve_pop_wofftake, offtake=sens_P_lives
 
 sens_P_livestock = sensitivity::tell(sens_P_livestock, unlist(res), res.names="avg.ann.offtake")
 
-sens_P_livestock$S
-sens_P_livestock$T
+#sens_P_livestock$S
+#sens_P_livestock$T
+```
 
-print(sens_P_livestock)
+## Livestock Sensitivity Analysis
+
+Sensitivity analysis shows our livestock model is about equally sensitive to all input parameters. All evaluated parameters are within the margin of error with eachother. 
+
+However, graphing the offtake rate against average annual animals consumed shows there could be a stronger relationship than the minimum heard size. 
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#print(sens_P_livestock)
 plot(sens_P_livestock, ylim = c(-3,4))
 
 # making a datafram for plotting
 both = cbind.data.frame(sens_P_livestock$X, results=sens_P_livestock$y)
 
 # look at response of conductance to the two most important variables
-ggplot(both, aes(Off,results, col=K))+geom_point()+labs(y="average animals slaughtered annually", x="offtake rate") + ggtitle("Results of sensitivity analysis of results of livestock submodel")
+ggplot(both, aes(Off,results, col=K))+geom_point()+labs(y="Average Animals Slaughtered Annually", x="Offtake Rate") + ggtitle("Results of sensitivity analysis of results of livestock submodel")+
+  theme_classic()
 
 # Looking at the response to the two most important variables
 ggplot(both, aes(minHerd, results, col = K)) +
   geom_point() +
-  labs(x = "min herd size", y ="average animals slaughtered annually") +
+  labs(x = "Min Herd Size", y ="Average Animals Slaughtered Annually") +
   theme_classic()
 
 ```
@@ -310,18 +345,18 @@ parms= list(x_crit=0, # critical mass to survive
 stock.parms= list(offtake=offtakerate, fertility=fertility, survivability=survivability, nstocks=2, initialpop=p0)
 crop.parms=list(wheatY=wheat, barleyY=barley, wl=67, bl=74, ncrops=2)
 
-# source("./R/sdp_farm123.R")
+ source("./R/sdp_farm123.R")
 # source("./R/sdp_farm123.R")
 # run function    
 sdp.out=sdp_farm(parms = parms, crop.parms = crop.parms, stock.parms = stock.parms)
 ```
-<<<<<<< HEAD
 
 
 ```{r summarize sdp res, echo=FALSE, warning=FALSE, message=FALSE}
 source("./R/sdp_df.R")
-=======
-```{r summarize sdp res}
+```
+
+```{r summarize sdp res2, echo=FALSE, warning=FALSE, message=FALSE}
 sdp_df=function(sdp.out,wheat.yld=crop.parms$wheatY$mean_yield,barley.yld=crop.parms$barleyY$mean_yield){
   
   year=1:nrow(sdp.out$FarmWealth) 
@@ -335,15 +370,16 @@ sdp_df=function(sdp.out,wheat.yld=crop.parms$wheatY$mean_yield,barley.yld=crop.p
   df=data.frame(year=year,avg.wealth=avg.wealth, sd.wealth=sd.wealth, wheat.yld=wheat.yld, barley.yld=barley.yld, mean.herd=mean.herd)
   return(df)
 }
->>>>>>> ae6dd97afdc6a9b1bbc4a7be336b370afde5e670
 
 # as a dataframe
 farm.df=sdp_df(sdp.out)
-head(farm.df)
+#head(farm.df)
 
 gg1<-ggplot(farm.df[-50,], aes(x=year,y=avg.wealth))+geom_line() 
 gg1 + geom_point(aes(y=wheat.yld), color="red") +
-  geom_point(aes(y=barley.yld), color="blue") 
+  geom_point(aes(y=barley.yld), color="blue") +
+  theme_classic()+
+  labs(x="Year", y="Average Wealth")
 
 compute.metrics= function(df){
   df=df[-1,]
@@ -354,7 +390,7 @@ compute.metrics= function(df){
               cor.barley=cor(df$barley.yld, df$avg.wealth),
               cor.herd= cor(df$mean.herd, df$avg.wealth) ))
 }
-compute.metrics(farm.df)              
+compute.metrics(farm.df)    
 
 
 ```
@@ -382,115 +418,96 @@ plot.wealth <- function(sdp.out, farm.yrly){
   
   abline(h = mean(farm.yrly$avg.wealth), col="red", lwd=3, lty=2)
 }
-<<<<<<< HEAD
-#plot.wealth(sdp.out, farm.yrly)
-=======
+
 plot.wealth(sdp.out, farm.df)
->>>>>>> ae6dd97afdc6a9b1bbc4a7be336b370afde5e670
-```
-
-
-```{r}
-
 
 ```
 
-## that's a noisy graph. 
-We try again byt change a few parameters.
 
 ```{r changing params, echo=FALSE, warning=FALSE, message=FALSE}
 crop.parms=list(wheatY=wheat, barleyY=barley, ncrops=2)
 sdp.out=sdp_farm(parms = parms, crop.parms = crop.parms, mean.ylds = c(58,58), stock.parms = stock.parms, hsr = 8)
 
 
-
 # show optimal strategy
 #plot.wealth(sdp.out, farm.yrly)
-
 
 # plot
 
 
 ```
 
-```{r summarizing sdp res}
-
-## SDP Sensitivity analysis
-
-
-<<<<<<< HEAD
-```{r summarizing sdp res, include=FALSE}
-=======
-```
-
+## Sensitivity Analysis for SDP 
 
 ```{r set up for sdp2, echo=FALSE}
->>>>>>> ae6dd97afdc6a9b1bbc4a7be336b370afde5e670
-library(sensitivity)
-(parms, crop.parms, stock.parms,hsr=36,max_store=20,PrS=0.85,PrGood=0.8,D.good=0.75,D.bad=0.85)
+
+#(parms, crop.parms, stock.parms,hsr=36,max_store=20,PrS=0.85,PrGood=0.8,D.good=0.75,D.bad=0.85)
 # names of our parameters
 # number of parameters 
 
-np=100
-hsr = rnorm(mean=36,sd=12, n=np)
-max_store = runif(min=12,max=30, n=np)
-PrS = rnorm(mean=0.85, sd=0.30, n=np)
-PrGood = rnorm(mean=0.8, sd=0.25, n=np)
-D.good = rnorm(mean=0.75, sd=0.15, n=np)
-D.bad = rnorm(mean=0.85, sd=0.35, n=np)
-X1 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad)
+#np=100
+#hsr = rnorm(mean=36,sd=12, n=np)
+#max_store = runif(min=12,max=30, n=np)
+#PrS = rnorm(mean=0.85, sd=0.30, n=np)
+#PrGood = rnorm(mean=0.8, sd=0.25, n=np)
+#D.good = rnorm(mean=0.75, sd=0.15, n=np)
+#D.bad = rnorm(mean=0.85, sd=0.35, n=np)
+#X1 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad)
 
 # generate two examples of random number from parmeter distributions
 
 # repeat sampling
-np=100
-hsr = rnorm(mean=36,sd=12, n=np)
-max_store = runif(min=12,max=30, n=np)
-PrS = rnorm(mean=0.85, sd=0.30, n=np)
-PrGood = rnorm(mean=0.8, sd=0.25, n=np)
-D.good = rnorm(mean=0.75, sd=0.15, n=np)
-D.bad = rnorm(mean=0.85, sd=0.35, n=np)
-X2 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad)
+#np=100
+#hsr = rnorm(mean=36,sd=12, n=np)
+#max_store = runif(min=12,max=30, n=np)
+#PrS = rnorm(mean=0.85, sd=0.30, n=np)
+#PrGood = rnorm(mean=0.8, sd=0.25, n=np)
+#D.good = rnorm(mean=0.75, sd=0.15, n=np)
+#D.bad = rnorm(mean=0.85, sd=0.35, n=np)
+#X2 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad)
 
-sens_sdp_sobel = sobol2007(model = NULL, X1, X2, nboot = 100)
+#sens_sdp_sobel = sobol2007(model = NULL, X1, X2, nboot = 100)
 
 # wrapper function for summarizing sdp results
 
 
 # run model for all parameter sets
-sdp_res = mapply(FUN=sdp_farm,  hsr=sens_sdp_sobel$X$hsr, max_store=sens_sdp_sobel$X$max_store, PrS=sens_sdp_sobel$X$PrS, PrGood=sens_sdp_sobel$X$PrGood, D.good=sens_sdp_sobel$X$D.good, D.bad=sens_sdp_sobel$X$D.bad, MoreArgs=list(parms=parms, crop.parms=crop.parms, stock.parms=stock.parms))
+#sdp_res = mapply(FUN=sdp_farm,  hsr=sens_sdp_sobel$X$hsr, max_store=sens_sdp_sobel$X$max_store, PrS=sens_sdp_sobel$X$PrS, PrGood=sens_sdp_sobel$X$PrGood, D.good=sens_sdp_sobel$X$D.good, D.bad=sens_sdp_sobel$X$D.bad, MoreArgs=list(parms=parms, crop.parms=crop.parms, stock.parms=stock.parms))
 
 
-sens_sdp_sobel = sensitivity::tell(sens_sdp_sobel,res, res.names="ga")
+#sens_sdp_sobel = sensitivity::tell(sens_sdp_sobel,res, res.names="ga")
 
 # first-order indices (main effect without co-variance)
-sens_Catm_sobel$S
+#sens_Catm_sobel$S
 
 # total sensitivity index -note that this partitions the output variance - so values sum to 1
-sens_Catm_sobel$T
+#sens_Catm_sobel$T
 
 # The difference between the main effect and total effect can tell us something about how the parameter influences results
 # so in the main effect we include interactions with other parameters
 
 
-print(sens_Catm_sobel)
-plot(sens_Catm_sobel)
+#print(sens_Catm_sobel)
+#plot(sens_Catm_sobel)
 
 # compare with LHS and PRCC
-sens_Catm$prcc
+#sens_Catm$prcc
 
 
-sens_Catm_sobel$S
-sens_Catm_sobel$T
+#sens_Catm_sobel$S
+#sens_Catm_sobel$T
 
 # make a data frame for plotting
-both = cbind.data.frame(sens_Catm_sobel$X, gs=sens_Catm_sobel$y)
+#both = cbind.data.frame(sens_Catm_sobel$X, gs=sens_Catm_sobel$y)
 
 # look at response of conductance to the two most important variables
-ggplot(both, aes(v,gs, col=height))+geom_point()+labs(y="Conductance (mm/s)", x="Windspeed")
+#ggplot(both, aes(v,gs, col=height))+geom_point()+labs(y="Conductance (mm/s)", x="Windspeed")
 
 
 ```
+
+##Conclusions
+
 
 
 ##References 
