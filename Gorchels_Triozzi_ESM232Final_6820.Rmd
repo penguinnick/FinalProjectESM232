@@ -338,17 +338,18 @@ sdp.out=sdp_farm(parms = parms, crop.parms = crop.parms, stock.parms = stock.par
 
 ```{r summarize sdp res, echo=FALSE, warning=FALSE, message=FALSE}
 source("./R/sdp_df.R")
+source("./R/compute_wealth_metrics.R")
 ```
 
 ```{r summarize sdp res2, echo=FALSE, warning=FALSE, message=FALSE}
-sdp_df=function(sdp.out,wheat.yld=crop.parms$wheatY$mean_yield,barley.yld=crop.parms$barleyY$mean_yield){
-  
-  year=1:nrow(sdp.out$FarmWealth) 
-  avg.wealth=apply(sdp.out$FarmWealth,1 ,mean)
-  sd.wealth=apply(sdp.out$FarmWealth,1 ,sd)
-  wheat.yld=wheat.yld#crop.parms$wheatY$mean_yield
-  barley.yld=barley.yld#crop.parms$barleyY$mean_yield
-  gp<-t(apply(sdp.out$GoatPop, c(1,2), sum))
+sdp_df=function(sdp_output){
+  fw=sdp_output[[1]]
+  year= 1:sdp_output[[5]]
+  avg.wealth=apply(fw,1 ,mean)
+  sd.wealth=apply(fw,1 ,sd)
+  wheat.yld=sdp_output[[6]]
+  barley.yld=sdp_output[[7]]
+  gp<-t(apply(sdp_output[[4]], c(1,2), sum))
   mean.herd=apply(gp,1,mean)
   
   df=data.frame(year=year,avg.wealth=avg.wealth, sd.wealth=sd.wealth, wheat.yld=wheat.yld, barley.yld=barley.yld, mean.herd=mean.herd)
@@ -365,21 +366,28 @@ gg1 + geom_point(aes(y=wheat.yld), color="red") +
   theme_classic()+
   labs(x="Year", y="Average Wealth")
 
-compute.metrics= function(df){
+
+compute.wealth.metrics= function(df, mean.only=FALSE){
   df=df[-1,]
-    
-  return(list(mean.wealth=mean(df$avg.wealth, na.rm = T),
-              variance=var(df$avg.wealth, na.rm = T),
-              cor.wheat=cor(df$wheat.yld, df$avg.wealth),
-              cor.barley=cor(df$barley.yld, df$avg.wealth),
-              cor.herd= cor(df$mean.herd, df$avg.wealth) ))
+  
+  if(mean.only==TRUE){
+    return(mean.wealth=mean(df$avg.wealth, na.rm = T))
+  } else {
+    return(list(mean.wealth=mean(df$avg.wealth, na.rm = T),
+                variance=var(df$avg.wealth, na.rm = T),
+                cor.wheat=cor(df$wheat.yld, df$avg.wealth),
+                cor.barley=cor(df$barley.yld, df$avg.wealth),
+                cor.herd= cor(df$mean.herd, df$avg.wealth) ))
+  }
 }
+
 ```
 
 This graph shows the wheat yield in red, the barley yield in blue and the average wealth with the black line. This deciion model shows destitution can occur with only slight variation in crop yields. 
 
 ```{r, echo=FALSE}
-compute.metrics(farm.df)    
+compute.wealth.metrics(farm.df)
+compute.wealth.metrics(farm.df, mean.only = T)
 
 
 ```
@@ -387,6 +395,7 @@ compute.metrics(farm.df)
 
 ```{r, include=FALSE}
 # plot
+source("./R/plot_wealth.R")
 plot.wealth <- function(sdp.out, farm.yrly){
   f1<-sdp.out$FarmWealth
   bestpatch <- sdp.out$OptimalStrategy
@@ -402,9 +411,10 @@ plot.wealth <- function(sdp.out, farm.yrly){
   box() 
   
   contour(x=1:parms$t_max,y=wealthclasses,z=f1,add=TRUE, col = "white")
-  abline(h = mean(farm.yrly$avg.wealth), col="red", lwd=3, lty=2)
+ 
+  # abline(h = mean(farm.yrly$avg.wealth), col="red", lwd=3, lty=2)
   legend(55, 25, fill=c("black",topo.colors(4), "red"), legend=c("destitue","wheat & 50% use rate","wheat & 75% use rate","barley & 50% use rate", "barley & 75% use rate", "mean wealth"))
-  
+   ablineclip(h = mean(farm.yrly$avg.wealth), x1 = 0,x2 = 49, lwd=3,lty = 2, col = "red")
   
 }
 
@@ -439,83 +449,62 @@ gg1 + geom_point(aes(y=wheat.yld), color="red") +
 
 ## Sensitivity Analysis for SDP 
 
-```{r set up for sdp2, echo=FALSE}
-
-#(parms, crop.parms, stock.parms,hsr=36,max_store=20,PrS=0.85,PrGood=0.8,D.good=0.75,D.bad=0.85)
-#names of our parameters
-#number of parameters 
-
-np=10
+```{r sensitivity for sdp, echo=FALSE}
+# Set up for sobol sensitivity analysis
+np=100
 hsr = rnorm(mean=36,sd=12, n=np)
 max_store = runif(min=12,max=30, n=np)
 PrS = rnorm(mean=0.85, sd=0.30, n=np)
 PrGood = rnorm(mean=0.8, sd=0.25, n=np)
 D.good = rnorm(mean=0.75, sd=0.15, n=np)
 D.bad = rnorm(mean=0.85, sd=0.35, n=np)
-wl=rnorm(mean=64, sd=12, n=np)
-bl=rnorm(mean=74, sd=18, n=np)
-X1 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad, wl, bl)
-
-
-#generate two examples of random number from parmeter distributions
+X1 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad)
 
 # repeat sampling
-np=10
-hsr = rnorm(mean=36,sd=12, n=np)
+np=100
+hsr =  rnorm(mean=36,sd=12, n=np)
 max_store = runif(min=12,max=30, n=np)
 PrS = rnorm(mean=0.85, sd=0.30, n=np)
 PrGood = rnorm(mean=0.8, sd=0.25, n=np)
 D.good = rnorm(mean=0.75, sd=0.15, n=np)
 D.bad = rnorm(mean=0.85, sd=0.35, n=np)
-wl=rnorm(mean=64, sd=12, n=np)
-bl=rnorm(mean=74, sd=18, n=np)
-X2 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad, wl, bl)
+X2 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad)
 
-sens_sdp_sobel = sobol2007(model = NULL, X1, X2, nboot = 10)
+# sobol 2002 method used here
+sens_sdp_sobel = sobol2002(model = NULL, X1, X2, nboot = 100)
 
-#wrapper function for summarizing sdp results
+# run model for all parameter sets
+sdp_res = mapply(FUN=sdp_farm,hsr=sens_sdp_sobel$X$hsr,max_store=sens_sdp_sobel$X$max_store,PrS=sens_sdp_sobel$X$PrS, PrGood=sens_sdp_sobel$X$PrGood,D.good=sens_sdp_sobel$X$D.good, D.bad=sens_sdp_sobel$X$D.bad, MoreArgs=list(parms=parms, crop.parms=crop.parms, stock.parms=stock.parms))
+
+# wrapper function for summarizing sdp results
 wrapper<- function(res){
   df <- sdp_df(res)
   results<-compute.wealth.metrics(df, mean.only = T)
   return(results)
 }
 
-wrapper(sdp_res)
-# run model for all parameter sets
-sdp_res = unlist(lapply(mapply(FUN=sdp_farm,  hsr=sens_sdp_sobel$X$hsr, max_store=sens_sdp_sobel$X$max_store, PrS=sens_sdp_sobel$X$PrS, PrGood=sens_sdp_sobel$X$PrGood, D.good=sens_sdp_sobel$X$D.good, D.bad=sens_sdp_sobel$X$D.bad, mean.ylds=c(sens_sdp_sobel$X$wl, sens_sdp_sobel$X$bl), MoreArgs=list(parms=parms, crop.parms=crop.parms, stock.parms=stock.parms), SIMPLIFY = FALSE), function(r){wrapper(r)}))
+# apply wrapper to results
+sdp_results=sapply(1:dim(sdp_res)[2], function(r){wrapper(sdp_res[,r])})
 
-farm.df=sdp_df(sdp.out)
-
-##sens_sdp_sobel = sensitivity::tell(sens_sdp_sobel,res, res.names="ga")
-
-#3plot(sens_sdp_sobel)
-
+# feed results back to sensitivity model
+sens_sdp_sobel = tell(sens_sdp_sobel,sdp_results, res.names="avg.w")
 
 # first-order indices (main effect without co-variance)
-#sens_Catm_sobel$S
+sens_sdp_sobel$S
 
 # total sensitivity index -note that this partitions the output variance - so values sum to 1
-#sens_Catm_sobel$T
+sens_sdp_sobel$T
 
-# The difference between the main effect and total effect can tell us something about how the parameter influences results
-# so in the main effect we include interactions with other parameters
+print(sens_sdp_sobel)
 
-
-#print(sens_Catm_sobel)
-#plot(sens_Catm_sobel)
-
-# compare with LHS and PRCC
-#sens_Catm$prcc
-
-
-#sens_Catm_sobel$S
-#sens_Catm_sobel$T
+# compare effects of params
+plot(sens_sdp_sobel, ylim=c(-1,2))
 
 # make a data frame for plotting
-#both = cbind.data.frame(sens_Catm_sobel$X, gs=sens_Catm_sobel$y)
+both = cbind.data.frame(sens_sdp_sobel$X, av.w=sens_sdp_sobel$y)
 
 # look at response of conductance to the two most important variables
-#ggplot(both, aes(v,gs, col=height))+geom_point()+labs(y="Conductance (mm/s)", x="Windspeed")
+ggplot(both, aes(hsr,av.w, col=PrS))+geom_point()+labs(y="Average Wealth", x="HSR")
 
 
 ```
