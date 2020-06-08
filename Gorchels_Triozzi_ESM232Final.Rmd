@@ -390,6 +390,12 @@ compute.metrics= function(df){
               cor.barley=cor(df$barley.yld, df$avg.wealth),
               cor.herd= cor(df$mean.herd, df$avg.wealth) ))
 }
+```
+
+This graph shows the wheat yield in red, the barley yield in blue and the average wealth with the black line. This deciion model shows destitution can occur with only slight variation in crop yields. 
+
+
+```{r, echo=FALSE}
 compute.metrics(farm.df)    
 
 
@@ -442,40 +448,44 @@ sdp.out=sdp_farm(parms = parms, crop.parms = crop.parms, mean.ylds = c(58,58), s
 ```{r set up for sdp2, echo=FALSE}
 
 #(parms, crop.parms, stock.parms,hsr=36,max_store=20,PrS=0.85,PrGood=0.8,D.good=0.75,D.bad=0.85)
-# names of our parameters
-# number of parameters 
+#names of our parameters
+#number of parameters 
 
-#np=100
-#hsr = rnorm(mean=36,sd=12, n=np)
-#max_store = runif(min=12,max=30, n=np)
-#PrS = rnorm(mean=0.85, sd=0.30, n=np)
-#PrGood = rnorm(mean=0.8, sd=0.25, n=np)
-#D.good = rnorm(mean=0.75, sd=0.15, n=np)
-#D.bad = rnorm(mean=0.85, sd=0.35, n=np)
-#X1 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad)
+##np=100
+##hsr = rnorm(mean=36,sd=12, n=np)
+##max_store = runif(min=12,max=30, n=np)
+##PrS = rnorm(mean=0.85, sd=0.30, n=np)
+##PrGood = rnorm(mean=0.8, sd=0.25, n=np)
+##D.good = rnorm(mean=0.75, sd=0.15, n=np)
+##D.bad = rnorm(mean=0.85, sd=0.35, n=np)
+##X1 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad)
 
-# generate two examples of random number from parmeter distributions
+
+#generate two examples of random number from parmeter distributions
 
 # repeat sampling
-#np=100
-#hsr = rnorm(mean=36,sd=12, n=np)
-#max_store = runif(min=12,max=30, n=np)
-#PrS = rnorm(mean=0.85, sd=0.30, n=np)
-#PrGood = rnorm(mean=0.8, sd=0.25, n=np)
-#D.good = rnorm(mean=0.75, sd=0.15, n=np)
-#D.bad = rnorm(mean=0.85, sd=0.35, n=np)
-#X2 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad)
+##np=100
+##hsr = rnorm(mean=36,sd=12, n=np)
+##max_store = runif(min=12,max=30, n=np)
+##PrS = rnorm(mean=0.85, sd=0.30, n=np)
+##PrGood = rnorm(mean=0.8, sd=0.25, n=np)
+##D.good = rnorm(mean=0.75, sd=0.15, n=np)
+##D.bad = rnorm(mean=0.85, sd=0.35, n=np)
+##X2 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad)
 
-#sens_sdp_sobel = sobol2007(model = NULL, X1, X2, nboot = 100)
+##sens_sdp_sobel = sobol2007(model = NULL, X1, X2, nboot = 100)
 
-# wrapper function for summarizing sdp results
+#wrapper function for summarizing sdp results
 
 
 # run model for all parameter sets
-#sdp_res = mapply(FUN=sdp_farm,  hsr=sens_sdp_sobel$X$hsr, max_store=sens_sdp_sobel$X$max_store, PrS=sens_sdp_sobel$X$PrS, PrGood=sens_sdp_sobel$X$PrGood, D.good=sens_sdp_sobel$X$D.good, D.bad=sens_sdp_sobel$X$D.bad, MoreArgs=list(parms=parms, crop.parms=crop.parms, stock.parms=stock.parms))
+##sdp_res = mapply(FUN=sdp_farm,  hsr=sens_sdp_sobel$X$hsr, max_store=sens_sdp_sobel$X$max_store, PrS=sens_sdp_sobel$X$PrS, PrGood=sens_sdp_sobel$X$PrGood, D.good=sens_sdp_sobel$X$D.good, D.bad=sens_sdp_sobel$X$D.bad, MoreArgs=list(parms=parms, crop.parms=crop.parms, stock.parms=stock.parms))
 
 
-#sens_sdp_sobel = sensitivity::tell(sens_sdp_sobel,res, res.names="ga")
+##sens_sdp_sobel = sensitivity::tell(sens_sdp_sobel,res, res.names="ga")
+
+#3plot(sens_sdp_sobel)
+
 
 # first-order indices (main effect without co-variance)
 #sens_Catm_sobel$S
@@ -508,6 +518,7 @@ sdp.out=sdp_farm(parms = parms, crop.parms = crop.parms, mean.ylds = c(58,58), s
 
 ##Conclusions
 
+Our findings match real world subsistance farming patterns, showing much variability due to the variation in yields. However, there were some useful takeaways. First, while offtaking animals at the 75% rate can generate more meat in a given year, offtaking animals at 50% leads to overall more meat on a longer time scale. 
 
 
 ##References 
