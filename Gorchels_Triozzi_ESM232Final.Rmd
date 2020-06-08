@@ -125,26 +125,30 @@ goatini=p0
 initialpop = goatini
 
 
-tmp<-evolve_pop_wofftake(fertility = fertility, survivability = survivability,initialpop = p0, nstep = nyears, offtake = 0.75, K=220, minHerd = 140) 
+tmp1<-evolve_pop_wofftake(fertility = fertility, survivability = survivability,initialpop = p0, nstep = nyears, offtake = 0.75, K=220, minHerd = 140) 
 
 #str(tmp)
 ```
 
+## Survivability 
 
+The number of animals available for slaughter each  year is affected by the herd's survivability. We can simulate changes to mortality rate of the herd by adjusting the parameter "extrinsicP." If extrinsicP < 1, survivability decreases, and meat availability increases; set > 1, survivability increases, and meat availability decreases. The extrinsicP parameter can be useful for modeling the effects of perturbations to the system to see how the population rebounds. For our model, extrinsicP may inform when a 75% use rate of naturally occurring deaths may fail to meet subsistence requirements when fewer animals are dying naturally.
 
 ```{r plot livestock, echo=FALSE, warning=FALSE, message=FALSE}
 # test two offtake rates
 offtakerate= c(0.50, 0.75)
 K=320
-minHerd=sum(p0)
+minHerd=100
+extrinsicP=0.95
 
-tmp<-lapply(offtakerate, function(o){tmp=evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = o, extrinsicP = 0.97, K=K, minHerd =minHerd); return(tmp)})
+tmp<-lapply(offtakerate, function(o){tmp=evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = o, extrinsicP = extrinsicP, K=K, minHerd =minHerd); return(tmp)})
+
 
 # total offtake per year
 yrs=seq(1:(nyears-1))
 s=1:length(offtakerate)
 tot.annual.offtake = sapply(s, function(s){sapply(yrs, function(y){sum(tmp[[s]]$offtakes[,y])})})
-#tot.annual.offtake
+# apply(tot.annual.offtake, 2, mean)
 
 #-- compare population trends for both strategies 
 goat50=cbind.data.frame(year=seq(1:nyears), t(tmp[[1]]$popbyage))
@@ -161,12 +165,12 @@ goat75_agesl= goat75 %>% gather(key="agecat", value="pop",-year)
 ggplot(goat50_agesl, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population", fill="Age Group")+
   theme_classic()+
   scale_y_continuous(expand = c(0,0))+
-  ggtitle(paste0("Herd size by age at 50% use rate with K=",K," and min herd=",minHerd))
+  ggtitle(paste0("Herd size by age at 50% use rate with K=",K," and min herd=",minHerd))+ labs(subtitle = paste0("extrinsic mortality probability=",extrinsicP ))
 
 ggplot(goat75_agesl, aes(year, pop, fill=agecat))+geom_col()+labs(y="Population", fill="Age Group")+
   theme_classic()+
   scale_y_continuous(expand = c(0,0))+
-  ggtitle(paste0("Herd size by age at 75% use rate with K=",K," and min herd=",minHerd))
+  ggtitle(paste0("Herd size by age at 75% use rate with K=",K," and min herd=",minHerd)) + labs(subtitle = paste0("extrinsic mortality probability=",extrinsicP ))
 ```
 
 ## Offtake trends for both strategies 
@@ -191,14 +195,16 @@ ggplot(goat50_agesl_off, aes(year, slaughtered, fill=agecat))+
   labs(y="Animals available for slaughter", fill="Age Group")+
   theme_classic()+
   scale_y_continuous(expand = c(0,0))+
-  ggtitle(paste0("Slaughter by age at 50% use rate with K=",K," and min herd=",minHerd))
+  ggtitle(paste0("Slaughter by age at 50% use rate with K=",K," and min herd=",minHerd))+
+  labs(subtitle = paste0("extrinsic mortality probability=",extrinsicP ))
 
 
 ggplot(goat75_agesl_off, aes(year, slaughtered, fill=agecat))+
   geom_col()+labs(y="Animals available for slaughter", fill="Age Group")+
   theme_classic()+
   scale_y_continuous(expand = c(0,0))+
-  ggtitle(paste0("Slaughter by age at 75% use rate with K=",K," and min herd=",minHerd))
+  ggtitle(paste0("Slaughter by age at 75% use rate with K=",K," and min herd=",minHerd))+
+  labs(subtitle = paste0("extrinsic mortality probability=",extrinsicP ))
 
 ```
 
@@ -217,31 +223,15 @@ colnames(ot.df) <- c("g50", "g75")
 ot.yr <- ot.df%>% gather(key="userate", value="annual.total")
 
 ggplot(ot.yr, aes(userate, annual.total)) + geom_boxplot() + 
-  labs(title ="Total offtakes per year for each strategy", subtitle =paste0("K=",K," and min herd=",minHerd))+
+  labs(title ="Total offtakes per year for each strategy", subtitle =paste0("extrinsic mortality probability=",extrinsicP,"; K=",K," and min herd=",minHerd))+
   theme_classic()+
   xlab("Use Rate")+
   ylab("Annual Total")
 ```
 
-## A 50% use of naturally occuring herd deaths results in more animals available for offtake over a 50-year period
+## The offtake rates used here reflect the percentage of naturally occurring deaths used for meat. 
 
-Over a 50 year period the previous trend reverses, leading to more meat overall with the 50% offtake strategy. 
-
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
-#-- A 50% use of naturally occuring herd deaths results in more animals available for offtake over a 50-year period
-newstock <- data.frame(g50=tmp[[1]]$newstock, g75=tmp[[2]]$newstock)
-#head(newstock)
-newstock <- newstock[-1,]%>% gather(key="newstock", value="count")
-ggplot(newstock, aes(newstock, count)) + geom_boxplot() + ggtitle("Annual Births for each strategy", subtitle =paste0("K=",K," and min herd=",minHerd))+
-  theme_classic()+
-  ylab("Count")+
-  xlab("New Stock")
-
-
-
-```
-
-
+A function to compute average number of animals slaughtered per year for the 50% and 75% strategies.
 
 ```{r sensitivity livestock, include=FALSE}
 compute.offtake.metrics <- function(res){
@@ -257,24 +247,22 @@ compute.offtake.metrics(tmp)
 ```
 
 ```{r Livestock sensitivity analysis, include=FALSE}
-
 source("./R/evolve_pop_wofftakeK_play.R")
 
-evolve_pop_wofftake(fertility, survivability, p0, nstep = nyears, offtake = 0.50, K=220, minHerd = 160, extrinsicP = 0.97)
-
+# sensitivity of herd size to 
 
 np=100
 Off <- rnorm(mean = 0.5, sd=0.25, n=np)
-K <- rnorm(mean = 220, sd=60, n=np)
+K <- rnorm(mean = 320, sd=60, n=np)
 minHerd <- rnorm(mean = 160, sd=30, n=np)
-extrinsicP<-rnorm(mean = 0.95, sd=0.05, n=np)
+extrinsicP<-rnorm(mean = 0.85, sd=0.15, n=np)
 X1 = cbind.data.frame(Off=Off, K=K, minHerd=minHerd, extrinsicP=extrinsicP)
 
 np=100
 Off <- rnorm(mean = 0.5, sd=0.25, n=np)
-K <- rnorm(mean = 220, sd=60, n=np)
+K <- rnorm(mean = 320, sd=60, n=np)
 minHerd <- rnorm(mean = 160, sd=30, n=np)
-extrinsicP<-rnorm(mean = 0.95, sd=0.05, n=np)
+extrinsicP<-rnorm(mean = 0.85, sd=0.15, n=np)
 X2 = cbind.data.frame(Off=Off, K=K, minHerd=minHerd,  extrinsicP=extrinsicP)
 
 # null model
@@ -304,26 +292,26 @@ However, graphing the offtake rate against average annual animals consumed shows
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 #print(sens_P_livestock)
-plot(sens_P_livestock, ylim = c(-3,4))
+plot(sens_P_livestock, ylim = c(-1,2))
 
-# making a datafram for plotting
+# making a dataframe for plotting
 both = cbind.data.frame(sens_P_livestock$X, results=sens_P_livestock$y)
 
 # look at response of conductance to the two most important variables
-ggplot(both, aes(Off,results, col=K))+geom_point()+labs(y="Average Animals Slaughtered Annually", x="Offtake Rate") + ggtitle("Results of sensitivity analysis of results of livestock submodel")+
+ggplot(both, aes(extrinsicP,results, col=Off))+geom_point()+labs(y="Average Animals Slaughtered Annually", x="Probability of Extrinsic Mortality") + ggtitle("Results of sensitivity analysis of results of livestock submodel")+
   theme_classic()
 
 # Looking at the response to the two most important variables
-ggplot(both, aes(minHerd, results, col = K)) +
+ggplot(both, aes(Off, results, col = extrinsicP)) +
   geom_point() +
-  labs(x = "Min Herd Size", y ="Average Animals Slaughtered Annually") +
+  labs(title ="Results of sensitivity analysis of results of livestock submodel",  x = "Offtake Rate", y ="Average Animals Slaughtered Annually") +
   theme_classic()
 
 ```
 
 ## The Farmer's Choice Model
 
-A 50% use of naturally occuring herd deaths results in more animals available for offtake over a 50-year period. We'll use stochastic dynamic programming (sdp) to determine if 50% use rate is the optimal strategy when paired with variable cropping strategies
+A 75% use of naturally occuring herd deaths results in more animals available for offtake over a 50-year period. We'll use stochastic dynamic programming (sdp) to determine if 50% use rate is the optimal strategy when paired with variable cropping strategies
 
 Here we create lists containing the parameters for the sdp function. There are two state variables: wealth which is a measure of fitness, and age-structured goat herd population. At the start of each time step, a farmer decides whether to sow wheat (a drought sensitive crop) or barley (a drought resistant crop). The average yields are based on a poisson distribution, and is calculated as shown above. Depending on the yield, a cost to wealth is incurred reflecting seed, and is proportional to the yield. If the farmers wealth during the previous timestep is greater than the seed cost, the gains from planting either wheat or barley can be expected. The probability of obtaining any yield is based on a poisson distribution. 
 
@@ -336,11 +324,7 @@ parms= list(x_crit=0, # critical mass to survive
             t_max=50,
             maxwealth=75) # number of time steps) 
 
-# 
-# parms= list(x_crit=0, # critical mass to survive
-#             x_max=15, # maximal mass
-#             t_max=30,
-#             maxwealth=15) # number of time steps) 
+
 #-- stock and crop parms from above
 stock.parms= list(offtake=offtakerate, fertility=fertility, survivability=survivability, nstocks=2, initialpop=p0)
 crop.parms=list(wheatY=wheat, barleyY=barley, wl=67, bl=74, ncrops=2)
@@ -417,27 +401,38 @@ plot.wealth <- function(sdp.out, farm.yrly){
   image(x=timesteps,y=wealthclasses[-1],z=bestpatch,ylab="Wealth",xlab="Time",zlim=c(0,5), main="Best Strategy",col=c("black",topo.colors(4))) 
   box() 
   
-  contour(x=1:parms$t_max,y=wealthclasses,z=f1,add=TRUE)
-  
+  contour(x=1:parms$t_max,y=wealthclasses,z=f1,add=TRUE, col = "white")
+  abline(h = mean(farm.yrly$avg.wealth), col="red", lwd=3, lty=2)
   legend(55, 25, fill=c("black",topo.colors(4), "red"), legend=c("destitue","wheat & 50% use rate","wheat & 75% use rate","barley & 50% use rate", "barley & 75% use rate", "mean wealth"))
   
-  abline(h = mean(farm.yrly$avg.wealth), col="red", lwd=3, lty=2)
+  
 }
 
 plot.wealth(sdp.out, farm.df)
 
 ```
 
+## Varying the parameters 
+
+# Here we change the mean yield for wheat and barley in the mean.ylds variable from 67 and 74 to 58 and 64, respectively. We also see what happens when the household subsistence requirement is set to 25% of the default, 36. In the function, the mean yields are used as the lambda inputs in a poisson distribution. These values are used to generate the probabilities associated with each year's yield.
+
+The output suggests that wheat yields were sufficiently high in the first three time periods, and a 50% goat harvest rate allowed less wealthy households to survive. The average wealth for the run is higher than previously. The second plot shows that average wealth decreased according to drops in barley and wheat harvest between years 10 and 20. 
 
 ```{r changing params, echo=FALSE, warning=FALSE, message=FALSE}
 crop.parms=list(wheatY=wheat, barleyY=barley, ncrops=2)
-sdp.out=sdp_farm(parms = parms, crop.parms = crop.parms, mean.ylds = c(58,58), stock.parms = stock.parms, hsr = 8)
+sdp.out=sdp_farm(parms = parms, crop.parms = crop.parms, mean.ylds = c(58,64), stock.parms = stock.parms, hsr = 9)
 
 
 # show optimal strategy
-#plot.wealth(sdp.out, farm.yrly)
+farm.df=sdp_df(sdp.out)
+plot.wealth(sdp.out, farm.df)
 
-# plot
+# plot yield effects on wealth
+gg1<-ggplot(farm.df[-50,], aes(x=year,y=avg.wealth))+geom_line() 
+gg1 + geom_point(aes(y=wheat.yld), color="red") +
+  geom_point(aes(y=barley.yld), color="blue") +
+  theme_classic()+
+  labs(x="Year", y="Average Wealth")
 
 
 ```
@@ -457,7 +452,9 @@ sdp.out=sdp_farm(parms = parms, crop.parms = crop.parms, mean.ylds = c(58,58), s
 ##PrGood = rnorm(mean=0.8, sd=0.25, n=np)
 ##D.good = rnorm(mean=0.75, sd=0.15, n=np)
 ##D.bad = rnorm(mean=0.85, sd=0.35, n=np)
-##X1 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad)
+##wl=rnorm(mean=64, sd=12, n=np)
+##bl=rnorm(mean=74, sd=18, n=np)
+##X1 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad, wl, bl)
 
 
 #generate two examples of random number from parmeter distributions
@@ -470,7 +467,9 @@ sdp.out=sdp_farm(parms = parms, crop.parms = crop.parms, mean.ylds = c(58,58), s
 ##PrGood = rnorm(mean=0.8, sd=0.25, n=np)
 ##D.good = rnorm(mean=0.75, sd=0.15, n=np)
 ##D.bad = rnorm(mean=0.85, sd=0.35, n=np)
-##X2 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad)
+##wl=rnorm(mean=64, sd=12, n=np)
+##bl=rnorm(mean=74, sd=18, n=np)
+##X2 = cbind.data.frame(hsr, max_store, PrS, PrGood, D.good, D.bad, wl, bl)
 
 ##sens_sdp_sobel = sobol2007(model = NULL, X1, X2, nboot = 100)
 
@@ -478,7 +477,7 @@ sdp.out=sdp_farm(parms = parms, crop.parms = crop.parms, mean.ylds = c(58,58), s
 
 
 # run model for all parameter sets
-##sdp_res = mapply(FUN=sdp_farm,  hsr=sens_sdp_sobel$X$hsr, max_store=sens_sdp_sobel$X$max_store, PrS=sens_sdp_sobel$X$PrS, PrGood=sens_sdp_sobel$X$PrGood, D.good=sens_sdp_sobel$X$D.good, D.bad=sens_sdp_sobel$X$D.bad, MoreArgs=list(parms=parms, crop.parms=crop.parms, stock.parms=stock.parms))
+##sdp_res = mapply(FUN=sdp_farm,  hsr=sens_sdp_sobel$X$hsr, max_store=sens_sdp_sobel$X$max_store, PrS=sens_sdp_sobel$X$PrS, PrGood=sens_sdp_sobel$X$PrGood, D.good=sens_sdp_sobel$X$D.good, D.bad=sens_sdp_sobel$X$D.bad, mean.ylds=c(sens_sdp_sobel$X$wl, sens_sdp_sobel$X$bl), MoreArgs=list(parms=parms, crop.parms=crop.parms, stock.parms=stock.parms))
 
 
 ##sens_sdp_sobel = sensitivity::tell(sens_sdp_sobel,res, res.names="ga")
@@ -517,7 +516,7 @@ sdp.out=sdp_farm(parms = parms, crop.parms = crop.parms, mean.ylds = c(58,58), s
 
 ##Conclusions
 
-Our findings match real world subsistance farming patterns, showing much variability due to the variation in yields. However, there were some useful takeaways. First, while offtaking animals at the 75% rate can generate more meat in a given year, offtaking animals at 50% leads to overall more meat on a longer time scale. Sensitivity analysis on the livestock function shows no significant differences between parameters, but visualizaion indicates there could be a stronger relationship between offtake rates and average annual meat consumption. 
+Our findings match real world subsistance farming patterns, showing much variability due to the variation in yields. However, there were some useful takeaways. First, while offtaking animals at the 75% rate can generate more meat in a given year, offtaking animals at 50% leads to overall more meat on a longer time scale, but relying on this strategy can fail when the mortality of the herd deviates from expectation. Sensitivity analysis on the livestock function shows no significant differences between parameters, but visualizaion indicates there could be a stronger relationship between offtake rates and average annual meat consumption. 
 
 
 
