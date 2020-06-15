@@ -1,0 +1,196 @@
+---
+title: "GDD"
+author: "Nick Triozzi"
+date: "6/14/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(riem)
+library(stringr)
+library(adehabitatHR)
+library(rgdal)
+library(gstat)
+library(sp)
+library(plyr)
+library(dplyr)
+library(pollen)
+library(mapview)
+library(spatstat)  # Used for the dirichlet tessellation function
+library(maptools)  # Used for conversion from SPDF to ppp
+library(raster)    # Used to clip out thiessen polygons
+
+```
+
+## Ravni Kotari Weather
+
+This chunk retrieves weather data from riem. Here I create a table giving monthly max and min temps
+
+```{r monthly temp extremes}
+#-- retrieve weather data
+library(riem)
+riem_networks()
+riem_stations("HR__ASOS")
+# create spdf from stations, plot
+hr.stations = riem_stations("HR__ASOS")
+coords = data.frame(x = hr.stations$lon, y=hr.stations$lat) # create data frame of coordinates
+#-- set crs for long/lat - wgs84
+crs="+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0"
+#-- create spdf
+hrs.spdf = SpatialPointsDataFrame(coords=coords, data =hr.stations, proj4string = CRS(crs))
+mapview(hrs.spdf)
+
+# Zadar statio is LDZD; query this data
+Zadar=riem_measures("LDZD", date_start = "2014-01-01", date_end = "2020-05-30")
+head(Zadar)
+
+# create date column
+Zadar$date= as.Date(as.character(substr(Zadar$valid, 1, 10)), foformat = "%Y%m%d")
+Zadar$year = as.numeric(format(Zadar$date, format = "%Y"))
+Zadar$month = as.numeric(format(Zadar$date, format = "%m"))
+Zadar$day = as.numeric(format(Zadar$date, format = "%d"))
+
+# convert temperature to celcius
+#-- convert F to Celcius
+Zadar$tmpC = ((Zadar$tmpf-32)*5)/9
+
+# get daily min and max temps
+dailyTemps = Zadar %>% group_by(year,month,day) %>% summarize(minTemp=min(tmpC), maxTemp=max(tmpC))
+dailyTemps
+
+# get monthly average min and max temp for years 
+monthlyTempAvg = dailyTemps %>% group_by(month) %>% summarize(meanMinTemp= mean(minTemp, na.rm=T), meanMaxTemp= mean(maxTemp, na.rm=T))
+t(monthlyTempAvg)
+# write.csv(t(monthlyTempAvg), file = "Zadar_monthly_Temp_20142020.csv")
+
+```
+
+## Create GDD raster image
+
+Use weather station data available for RV to calculate growing degree days. Data was downloaded from 
+
+
+```{r additional stations}
+df = read.table("./data/weather_1952_2020.txt", stringsAsFactors = FALSE, header=T, na.strings=c('99999','99999.9','999.9','99.9'), sep = ",")
+str(df)
+dim(df)
+colnames(df)
+df = df[,c(1,3,18,19, 20)] # drop columns except for min/max temp, station ID, and date
+
+#-- remove asterisk from temperatures and force numeric
+df$TMAX = as.numeric(str_replace(df$MAX, '\\*', ''))
+df$TMIN = as.numeric(str_replace(df$MIN, '\\*', ''))
+df$PRCP = as.numeric(str_replace(df$PRCP, '\\*', ''))
+head(df)
+
+#-- set 9999.90 to NA
+df[df$TMAX==9999.90,]$TMAX = NA
+df[df$TMIN==9999.90,]$TMIN = NA
+
+#-- drop columns
+df = df[,c(1,2,5,6,7)]
+colnames(df) = c("STATION_ID", "YEARMODA",  "PRCP", "TMAX","TMIN")
+
+#-- Reformat DATE and create Year Month Day columns from NewDate column
+df$date = as.Date(as.character(df$YEARMODA), format("%Y%m%d"))
+df$year = as.numeric(format(df$date, format = "%Y"))
+df$month = as.numeric(format(df$date, format = "%m"))
+df$day = as.numeric(format(df$date, format = "%d"))
+head(df)
+
+#-- convert F to Celcius
+df$TMAXC = ((df$TMAX-32)*5)/9
+df$TMINC = ((df$TMIN-32)*5)/9
+
+
+#-- join stations and weather data
+#-- read in stations file
+s = read.csv("./data/stations.csv", header = T)
+str(s)
+head(s)
+#-- reformat station ID to match column in daily weather data
+s$STATION_ID = (s$STATION_ID-99999)/100000
+HR.weather = inner_join(s,df)
+head(HR.weather)
+
+
+```
+
+## Subset stations in RV
+Use mapview to cull stations
+```{r compute GDD}
+#-- group data by station and compute average daily min and max temps
+HR.temps = HR.weather %>% group_by(STATION_ID, month, day) %>% summarize(meanTmax = mean(TMAXC, na.rm=T, trim=0), meanTmin=mean(TMINC, na.rm=T, trim=0))
+
+#-- compute GDD function
+source("./R/computeGDD.R")
+HR.temps$GDD=compute.GDD(tmin = HR.temps$meanTmin,tmax = HR.temps$meanTmax)
+
+#-- set NaN to 0
+HR.temps[is.na(HR.temps$GDD),]=0
+head(HR.temps)
+
+#-- sum GDD per station
+HR.GDD=HR.temps %>% group_by(STATION_ID) %>% summarize(GDD=sum(GDD))
+head(HR.GDD)
+HR.GDD=HR.GDD[-1,] # drop first empty row
+
+#-- join to station locations
+HR.GDD = inner_join(HR.GDD, s)
+
+#-- create spatial points data frame
+coords=data.frame(x = HR.GDD$LONGITUDE, y = HR.GDD$LATITUDE) # create data frame of coordinates
+crs="+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0"
+stations = SpatialPointsDataFrame(coords=coords, data = HR.GDD, proj4string = CRS(crs))
+
+#-- view map
+m1=mapview(stations)
+m1
+
+```
+
+## Interpolate GDD values
+First we reproject station locations to LAEA coord system
+
+```{r interpolation}
+hr = readOGR(dsn="./vectors", layer = "HRV_adm0") 
+proj4string(hr)
+#-- reproject to match other data - set crs to proj4string
+crs = "+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+hr=spTransform(hr, CRSobj = crs)
+stations = spTransform(stations, CRSobj = crs)
+P=stations
+W=hr
+
+# Replace point boundary extent with that of Croatia
+P@bbox = W@bbox
+
+
+P.ppp <- as.ppp(P)
+
+#-- Create an empty grid where n is the total number of cells
+einkorn=raster("./rasters/einkorn_suitability.tif")
+grd              = as.data.frame(spsample(P, "regular", n=ncell(einkorn), cellsize=500))
+names(grd)       = c("X", "Y")
+coordinates(grd) = c("X", "Y")
+gridded(grd)     = TRUE  # Create SpatialPixel object
+fullgrid(grd)    = TRUE  # Create SpatialGrid object
+#-- Add P's projection information to the empty grid
+proj4string(grd) = proj4string(P)
+
+#-- Interpolate the grid cells using a power value of 2 (idp=2.0)
+P.idw = gstat::idw(GDD ~ 1, P, newdata=grd, idp=2.0)
+
+#-- Convert to raster object then clip to HR boundary
+HR.GDD = mask(raster(P.idw), W)
+plot(HR.GDD)
+
+#-- resample and crop to study area boundary
+HR.GDD.rs = resample(HR.GDD, einkorn)
+plot(HR.GDD.rs)
+rm(HR.GDD)
+# writeRaster(HR.GDD.rs,filename =  "./rasters/HR_GDD.tif")
+
+```
+

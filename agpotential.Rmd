@@ -1,0 +1,109 @@
+---
+title: "agpotential"
+author: "Nick Triozzi"
+date: "6/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rgdal)
+library(raster)
+library(rgeos)
+library(mapview)
+devtools::install_github("ropensci/rnoaa")
+library("rnoaa")
+
+```
+
+```{r GDD}
+
+#-- read in station weather data
+clim <- read.table("weather_1952_2020.txt", stringsAsFactors = FALSE, header=T, na.strings=c('99999','99999.9','999.9','99.9'), sep = ",")
+
+
+ncdc_stations(extent = extent(sites))
+
+df <- clim
+str(df)
+#-- drop columns
+df <- df[,c(1,3,18,19, 20)]
+head(df)
+str(df)
+#-- remove asterisk from temperatures and force numeric
+df$MAX <- as.numeric(str_replace(df$MAX, '\\*', ''))
+df$MIN <- as.numeric(str_replace(df$MIN, '\\*', ''))
+df$PRCP <- as.numeric(str_replace(df$PRCP, '\\*', ''))
+head(df$PRCP)
+colnames(Tdf) <- c("STATION_ID", "YEARMODA", "TMAX","TMIN")
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+sites=readOGR(dsn = "./vectors", layer = "ddigNeolithicSites")
+proj4string(sites)
+str(sites@data)
+sites@data=sites@data[,c(1,7:9)]
+
+# fix site name encodings
+tmp=as.character(sites@data$SiteName)
+Encoding(tmp) <- "UTF-8"
+sites@data$SiteName=tmp
+str(sites@data)
+
+# plot sites
+m1=mapview(sites,legend=T,  label=sites@data$SiteName)
+m1
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+p.wheat=raster("./rasters/einkorn_suitability.tif")
+extent(p.wheat)
+extent(sites)
+crs=proj4string(p.wheat)
+new.sites=spTransform(sites, CRSobj = crs)
+p.wheat=crop(raster("./rasters/einkorn_suitability.tif"), extent(new.sites))
+p.cult=crop(raster("./rasters/S.tif"), extent(new.sites))
+hist(p.wheat)
+p.wheat=p.wheat*0.01
+hist(p.cult)
+
+# two buffers around sites: 5km and 10km
+field1km=gBuffer(new.sites, byid = T, width = 1000)
+field3km=gBuffer(new.sites, byid = T, width = 3000)
+spatlist=list(field1km, field3km, new.sites)
+
+# create spdf
+p.wheat.sgdf=as(p.wheat,"SpatialGridDataFrame")
+p.cult.sgdf=as(p.cult,"SpatialGridDataFrame")
+# rm(p.wheat, p.cult)
+
+# summarize data
+source("./R/get_site_stats.R")
+
+p.wheat.stats=lapply(spatlist, function(s){get_site_stats(s, p.wheat.sgdf)})
+p.cult.stats=lapply(spatlist, function(s){get_site_stats(s, p.cult.sgdf)})
+write.csv(p.wheat.stats[[1]]@data, file = "./data/wheat_suit_1km.csv")
+write.csv(p.wheat.stats[[2]]@data, file = "./data/wheat_suit_3km.csv")
+write.csv(p.cult.stats[[1]]@data, file = "./data/prob_cult_1km.csv")
+write.csv(p.cult.stats[[2]]@data, file = "./data/prob_cult_3km.csv")
+# pwfield1stats=get_site_stats(field1km, p.wheat.sgdf)
+# field3stats=get_site_stats(field3km, p.wheat.sgdf)
+# sitestats=get_site_stats(new.sites,p.wheat.sgdf)
+
+
+mapview(field3stats, zcol="max", legend=T)+mapview(pwfield1stats, zcol="max", legend=T)
+mapview(field3stats, zcol="mean", legend=T)+mapview(field1stats, zcol="mean", legend=T)#+ mapview(newf, zcol="date",  color=myPal, legend=TRUE, label=newf$Site)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
